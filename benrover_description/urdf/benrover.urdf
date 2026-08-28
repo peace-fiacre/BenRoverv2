@@ -98,7 +98,7 @@
       </geometry>
     </collision>
 
-    <!-- Capteurs Gazebo Classic retirés (incompatibles ros_gz_sim) -- à refaire en gz-sensors :
+    <!-- Capteurs Gazebo Classic retirés (incompatibles ros_gz_sim), à refaire en gz-sensors :
     <gazebo reference="Cam_servo_link">
       <sensor type="ray" name="distance_sensor"> ... libgazebo_ros_range.so ... </sensor>
       <sensor type="thermal" name="temperature_sensor"> ... libgazebo_ros_thermal.so ... </sensor>
