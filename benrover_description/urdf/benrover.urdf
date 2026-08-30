@@ -1,749 +1,574 @@
-<?xml version="1.0" encoding="utf-8"?>
-<robot name="benrover_assembly">
+<!--
 
-  <!-- ============================================================
-       NOTE DE CORRECTION (par rapport à l'URDF legacy exporté SolidWorks) :
-       1. package://benrover_assembly/... -> package://benrover_description/...
-          (le package s'appelle benrover_description dans ce projet)
-       2. Les 6 joints de roue (FL, ML, BL, FR, MR, BR) sont passés de
-          type="revolute" limit="0/0" (figé) à type="continuous"
-          (rotation libre, nécessaire pour un cmd_vel réel)
-       3. Joint_14 (Servo_BL -> Wheel_BL) était "fixed" par erreur d'export
-          -> corrigé en "continuous" comme les autres roues
-       4. Joint_22 (Bogie_R -> Servo_BR) était "prismatic" par erreur d'export
-          -> corrigé en "revolute" (limit 0/0) comme son équivalent Joint_12 à gauche
-       5. Les plugins <gazebo><sensor>...</gazebo> (distance_sensor,
-          temperature_sensor) utilisaient libgazebo_ros_range.so /
-          libgazebo_ros_thermal.so, qui sont des plugins GAZEBO CLASSIC,
-          incompatibles avec ros_gz_sim (Gazebo moderne) utilisé sur ce
-          projet. Ils sont commentés ci-dessous en attendant l'équivalent
-          gz-sensors — à faire dans une étape séparée.
-       6. Un bloc <ros2_control> minimal + plugin gz_ros2_control a été
-          ajouté en bas de fichier pour permettre le pilotage des 6 roues
-          via un controller différentiel/vitesse.
-       ============================================================ -->
+  Squelette générique de URDF pour un rover 6 roues a suspension rocker-bogie
+  (type Mars rover : Sojourner / Spirit-Opportunity / Curiosity).
 
-  <link name="base_link">
-    <inertial>
-      <origin xyz="-0.000724079989110685 -0.00147552228998236 0.134573181470297" rpy="0 0 0" />
-      <mass value="7.14396598530441" />
-      <inertia ixx="0.0292193039855911" ixy="5.39397843206637E-06" ixz="-1.14173620758502E-07" iyy="0.0198239346046229" iyz="4.05897534548459E-05" izz="0.0330653790278176" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/base_link.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/base_link.STL" />
-      </geometry>
-    </collision>
-  </link>
+  VERSION ADAPTEE POUR GAZEBO GARDEN (gz-sim7), PAS Gazebo Classic :
+    - Le mesh manquant (base_link.STL) est remplace par la primitive box
+      deja prevue en repli dans le fichier original.
+    - Les 4 plugins <gazebo><plugin filename="libgazebo_ros_*.so"> (Classic)
+      ont ete remplaces par leurs equivalents gz-sim :
+        libgazebo_ros_diff_drive.so           -> gz-sim-diff-drive-system
+        libgazebo_ros_joint_state_publisher.so -> gz-sim-joint-state-publisher-system
+        libgazebo_ros_ray_sensor.so (lidar)     -> <sensor type="gpu_lidar">
+        libgazebo_ros_imu_sensor.so             -> <sensor type="imu">
+    - IMPORTANT : ces plugins/capteurs gz-sim publient uniquement sur le bus
+      Gazebo Transport, pas directement sur des topics ROS 2. Un pont
+      ros_gz_bridge (fichier de config separe) sera necessaire pour exposer
+      /cmd_vel, /joint_states, /scan, /imu cote ROS 2. C'est l'etape suivante,
+      pas geree dans ce fichier.
+    - Objectif de cette version : permettre un spawn + un premier test de
+      /cmd_vel et /joint_states, PAS representer fidelement BenRover.
+      Dimensions/masses restent des valeurs generiques a affiner plus tard
+      avec le vrai CAO SolidWorks (mates + export SW2URDF).
+    - Les joints de direction (steer_front_*/steer_rear_*) ne sont PAS
+      pilotes par ce plugin diff_drive (qui ne commande que les joints de
+      roue continuous) : ils restent figes a 0 pour cette premiere version.
+      Un controleur de direction pourra etre ajoute plus tard sans toucher
+      a cette base.
 
-  <link name="Stepper_Link">
-    <inertial>
-      <origin xyz="-0.012842 0.014002 0.10656" rpy="0 0 0" />
-      <mass value="0.3385" />
-      <inertia ixx="0.00030812" ixy="-1.2E-05" ixz="-3.9059E-06" iyy="0.00066559" iyz="4.3019E-05" izz="0.00076628" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Stepper_Link.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.69804 0.69804 0.69804 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Stepper_Link.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_1" type="revolute">
-    <origin xyz="0.10279 0.20251 0.30619" rpy="0 0 -0.10625" />
-    <parent link="base_link" />
-    <child link="Stepper_Link" />
-    <axis xyz="0 0 1" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
+  ARCHITECTURE CINEMATIQUE (arbre, pas de boucle fermee) :
 
-  <link name="Cam_servo_link">
-    <inertial>
-      <origin xyz="-0.021387787812727 -0.0207061777371578 0.0655794588755857" rpy="0 0 0" />
-      <mass value="0.224653580168318" />
-      <inertia ixx="0.000251948786465161" ixy="2.59886309791416E-05" ixz="4.3370842068186E-06" iyy="0.000606830551802659" iyz="-4.34940840653467E-05" izz="0.000737679320841926" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Cam_servo_link.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Cam_servo_link.STL" />
-      </geometry>
-    </collision>
+    base_link (chassis)
+     ├── rocker_left            (revolute, axe Y)
+     │     ├── steer_front_left  (revolute, axe Z)  -> wheel_front_left  (continuous, axe Y)
+     │     └── bogie_left        (revolute, axe Y)
+     │           ├── wheel_middle_left (continuous, axe Y)
+     │           └── steer_rear_left  (revolute, axe Z) -> wheel_rear_left (continuous, axe Y)
+     └── rocker_right           (revolute, axe Y)  [miroir du cote gauche]
+           ├── steer_front_right -> wheel_front_right
+           └── bogie_right
+                 ├── wheel_middle_right
+                 └── steer_rear_right -> wheel_rear_right
 
-    <!-- Capteurs Gazebo Classic retirés (incompatibles ros_gz_sim), à refaire en gz-sensors :
-    <gazebo reference="Cam_servo_link">
-      <sensor type="ray" name="distance_sensor"> ... libgazebo_ros_range.so ... </sensor>
-      <sensor type="thermal" name="temperature_sensor"> ... libgazebo_ros_thermal.so ... </sensor>
-    </gazebo>
-    -->
-
-  </link>
-
-  <joint name="Joint_2" type="revolute">
-    <origin xyz="-0.036761 -0.0016843 0.073553" rpy="0 0 -3.0353" />
-    <parent link="Stepper_Link" />
-    <child link="Cam_servo_link" />
-    <axis xyz="-0.99817 0.060426 0" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="Rod_Mid">
-    <inertial>
-      <origin xyz="-7.91033905045424E-16 -1.11022302462516E-15 -1.0219891599661E-10" rpy="0 0 0" />
-      <mass value="0.247501924201797" />
-      <inertia ixx="2.91050694305294E-05" ixy="-3.20579628181268E-05" ixz="1.42355418685488E-17" iyy="0.000326322896307199" iyz="1.48943956632535E-18" izz="0.000338300233875836" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Rod_Mid.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="1 1 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Rod_Mid.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_4" type="revolute">
-    <origin xyz="-0.0022109 -0.11249 0.24069" rpy="0 0 -0.10625" />
-    <parent link="base_link" />
-    <child link="Rod_Mid" />
-    <axis xyz="0 0 -1" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="Rocker_L">
-    <inertial>
-      <origin xyz="-0.095714131227585 -0.00183140514102408 -0.273417134268779" rpy="0 0 0" />
-      <mass value="4.08510166192447" />
-      <inertia ixx="0.0108463620166921" ixy="4.59999760720765E-06" ixz="-0.00010357113908455" iyy="0.00710790917042915" iyz="0.000145923577450299" izz="0.00708602691856587" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Rocker_L.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Rocker_L.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_5" type="revolute">
-    <origin xyz="-0.17137 -0.0024936 0.13069" rpy="0 0 0" />
-    <parent link="base_link" />
-    <child link="Rocker_L" />
-    <axis xyz="0 0 -1" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="Support_L">
-    <inertial>
-      <origin xyz="0.00606558433148147 -0.0571741253508044 -1.48921708298388E-11" rpy="0 0 0" />
-      <mass value="0.0134356440443593" />
-      <inertia ixx="2.69181467377964E-06" ixy="2.27679189496625E-07" ixz="-2.83992863810058E-13" iyy="5.8760396450515E-07" iyz="-2.42524206150177E-14" izz="2.89402207404695E-06" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Support_L.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.698039215686274 0.698039215686274 0.698039215686274 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Support_L.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_6" type="revolute">
-    <origin xyz="-0.010845 0 0.11" rpy="0 0 -0.10625" />
-    <parent link="Rocker_L" />
-    <child link="Support_L" />
-    <axis xyz="0.99436 0.10605 0" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="RodEnd_L">
-    <inertial>
-      <origin xyz="0.178985278115135 0.0190858643515939 -0.0080000001021989" rpy="0 0 0" />
-      <mass value="0.247501924201797" />
-      <inertia ixx="2.91050694305294E-05" ixy="-3.20579628181268E-05" ixz="1.4235391761117E-17" iyy="0.000326322896307199" iyz="1.48942449289739E-18" izz="0.000338300233875836" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/RodEnd_L.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="1 1 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/RodEnd_L.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_26" type="revolute">
-    <origin xyz="0.011665 -0.10938 0.008" rpy="0 0 0" />
-    <parent link="Support_L" />
-    <child link="RodEnd_L" />
-    <axis xyz="0 0 -1" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="Servo_FL">
-    <inertial>
-      <origin xyz="-0.0557302059209704 0.0797613892941084 -0.109890068455304" rpy="0 0 0" />
-      <mass value="1.13448077750773" />
-      <inertia ixx="0.00347287005599623" ixy="-3.80214194994196E-05" ixz="-2.47679271475803E-05" iyy="0.00225589091578232" iyz="0.000174402092069528" izz="0.00220617462721394" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Servo_FL.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.698039215686274 0.698039215686274 0.698039215686274 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Servo_FL.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_7" type="revolute">
-    <origin xyz="-0.046345 0.22091 -0.19231" rpy="-2.5624E-05 0 0.054272" />
-    <parent link="Rocker_L" />
-    <child link="Servo_FL" />
-    <axis xyz="0 0 1" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="Wheel_FL">
-    <inertial>
-      <origin xyz="-0.0139735730134634 -0.00149064855046954 -5.26057800590007E-05" rpy="0 0 0" />
-      <mass value="0.860787064271295" />
-      <inertia ixx="0.00301031809005981" ixy="0.000115650533645952" ixz="4.59412194285161E-09" iyy="0.0019382543236092" iyz="8.47129346744498E-10" izz="0.00192608593021535" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_FL.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.698039215686274 0.698039215686274 0.698039215686274 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_FL.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <!-- Joint_8 : roue motrice -> passé en continuous (était revolute limit 0/0) -->
-  <joint name="Joint_8" type="continuous">
-    <origin xyz="-0.058303 0.08817 -0.12035" rpy="2.5517E-05 0 -0.16052" />
-    <parent link="Servo_FL" />
-    <child link="Wheel_FL" />
-    <axis xyz="0.99436 0.10605 0" />
-    <limit effort="10" velocity="10" />
-  </joint>
-
-  <link name="Bogie_L">
-    <inertial>
-      <origin xyz="0.0231368486696247 0.0145398061265448 -0.138314223001441" rpy="0 0 0" />
-      <mass value="2.4904146006575" />
-      <inertia ixx="0.00677995439614447" ixy="-2.10437487725163E-05" ixz="4.72597942468661E-05" iyy="0.0044283319138036" iyz="0.000137206248561081" izz="0.00447211770524448" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Bogie_L.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.698039215686274 0.698039215686274 0.698039215686274 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Bogie_L.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_9" type="revolute">
-    <origin xyz="-0.077845 -0.15 -0.15" rpy="0 0 3.1416" />
-    <parent link="Rocker_L" />
-    <child link="Bogie_L" />
-    <axis xyz="-1 0 0" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="Wheel_ML">
-    <inertial>
-      <origin xyz="-0.0139735730134825 -0.00149064855029794 -5.26057791247481E-05" rpy="0 0 0" />
-      <mass value="0.860787064271292" />
-      <inertia ixx="0.00301031809005981" ixy="0.000115650533645947" ixz="4.59412194159009E-09" iyy="0.0019382543236092" iyz="8.47129345290873E-10" izz="0.00192608593021535" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_ML.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_ML.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <!-- Joint_10 : roue motrice -> passé en continuous -->
-  <joint name="Joint_10" type="continuous">
-    <origin xyz="0.0315 -0.14999 -0.15696" rpy="0 0 3.0353" />
-    <parent link="Bogie_L" />
-    <child link="Wheel_ML" />
-    <axis xyz="0.99436 0.10605 0" />
-    <limit effort="10" velocity="10" />
-  </joint>
-
-  <link name="Servo_BL">
-    <inertial>
-      <origin xyz="0.0608820957888571 0.0759022928662983 -0.109889889061491" rpy="0 0 0" />
-      <mass value="1.13448388931373" />
-      <inertia ixx="0.00347255472489971" ixy="-4.26040240515874E-05" ixz="3.62409624962684E-05" iyy="0.00225617993456282" iyz="0.000172380917810409" izz="0.00220617833951696" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Servo_BL.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.698039215686274 0.698039215686274 0.698039215686274 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Servo_BL.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_12" type="revolute">
-    <origin xyz="-0.0315 0.070919 -0.042294" rpy="8.6265E-05 0 0.0119" />
-    <parent link="Bogie_L" />
-    <child link="Servo_BL" />
-    <axis xyz="0 -8.6265E-05 -1" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="Wheel_BL">
-    <inertial>
-      <origin xyz="-0.0139735730134813 -0.00149064855030634 -5.26057786460754E-05" rpy="0 0 0" />
-      <mass value="0.860787064271295" />
-      <inertia ixx="0.00301031809005982" ixy="0.000115650533645952" ixz="4.59412193890066E-09" iyy="0.0019382543236092" iyz="8.47129347687611E-10" izz="0.00192608593021536" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_BL.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_BL.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <!-- Joint_14 : CORRIGÉ - était type="fixed" (erreur d'export), roue motrice -> continuous -->
-  <joint name="Joint_14" type="continuous">
-    <origin xyz="0.064006 0.084122 -0.12035" rpy="8.5785E-05 0 3.0234" />
-    <parent link="Servo_BL" />
-    <child link="Wheel_BL" />
-    <axis xyz="0.99436 0.10605 0" />
-    <limit effort="10" velocity="10" />
-  </joint>
-
-  <link name="Rocker_R">
-    <inertial>
-      <origin xyz="0.0959917384068205 -0.0017912812144567 -0.273128675941651" rpy="0 0 0" />
-      <mass value="4.05512982615868" />
-      <inertia ixx="0.0107384464541923" ixy="-2.12859908779221E-06" ixz="8.94294873325857E-05" iyy="0.00703471757206817" iyz="0.000147149472123623" izz="0.00701139991057524" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Rocker_R.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Rocker_R.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_15" type="revolute">
-    <origin xyz="0.16694 -0.0024936 0.13069" rpy="0 0 0" />
-    <parent link="base_link" />
-    <child link="Rocker_R" />
-    <axis xyz="-1 0 0" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="Servo_FR">
-    <inertial>
-      <origin xyz="0.0582615224726586 0.0781282305140224 -0.109883270387408" rpy="0 0 0" />
-      <mass value="1.12504228159341" />
-      <inertia ixx="0.00342719687552513" ixy="9.74830925734921E-06" ixz="2.29803016637483E-05" iyy="0.00222612666509855" iyz="0.000151901170906317" izz="0.00217687557784079" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Servo_FR.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.698039215686274 0.698039215686274 0.698039215686274 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Servo_FR.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_18" type="revolute">
-    <origin xyz="0.046345 0.22092 -0.19229" rpy="2.5653E-05 0 -0.026904" />
-    <parent link="Rocker_R" />
-    <child link="Servo_FR" />
-    <axis xyz="0 0 1" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="Wheel_FR">
-    <inertial>
-      <origin xyz="0.0139730616783983 0.00149544207497365 -5.23516811694047E-05" rpy="0 0 0" />
-      <mass value="0.860786970953607" />
-      <inertia ixx="0.00301031800920376" ixy="0.000115650801504755" ixz="-2.99637165841063E-09" iyy="0.00193825583304392" iyz="-1.58902386867285E-08" izz="0.00192608448554685" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_FR.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_FR.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <!-- Joint_19 : roue motrice -> passé en continuous -->
-  <joint name="Joint_19" type="continuous">
-    <origin xyz="0.060694 0.086537 -0.12035" rpy="-2.5517E-05 0 -0.079344" />
-    <parent link="Servo_FR" />
-    <child link="Wheel_FR" />
-    <axis xyz="-0.99436 -0.10605 0" />
-    <limit effort="10" velocity="10" />
-  </joint>
-
-  <link name="Bogie_R">
-    <inertial>
-      <origin xyz="0.0235443710503372 -0.0146407350091245 -0.138215584042858" rpy="0 0 0" />
-      <mass value="2.46794531572652" />
-      <inertia ixx="0.00671850467311786" ixy="1.79352044917545E-05" ixz="4.02288018835865E-05" iyy="0.00438399651787297" iyz="-0.00011441901254996" izz="0.00442670238398224" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Bogie_R.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.698039215686274 0.698039215686274 0.698039215686274 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Bogie_R.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_20" type="revolute">
-    <origin xyz="0.077845 -0.15 -0.15" rpy="0 0 0" />
-    <parent link="Rocker_R" />
-    <child link="Bogie_R" />
-    <axis xyz="1 0 0" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="Wheel_MR">
-    <inertial>
-      <origin xyz="0.0139735731153412 0.0014906475953536 -5.26057860057438E-05" rpy="0 0 0" />
-      <mass value="0.860787064272944" />
-      <inertia ixx="0.00301031809007767" ixy="0.00011565053356412" ixz="-4.59444151575659E-09" iyy="0.00193825432357897" iyz="-8.44123506436471E-10" izz="0.00192608593022808" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_MR.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_MR.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <!-- Joint_21 : roue motrice -> passé en continuous -->
-  <joint name="Joint_21" type="continuous">
-    <origin xyz="0.0315 0.15 -0.15694" rpy="0 0 -0.10625" />
-    <parent link="Bogie_R" />
-    <child link="Wheel_MR" />
-    <axis xyz="-0.99436 -0.10605 0" />
-    <limit effort="10" velocity="10" />
-  </joint>
-
-  <link name="Servo_BR">
-    <inertial>
-      <origin xyz="-0.0636400421629145 0.0739197088703415 -0.109891525565" rpy="0 0 0" />
-      <mass value="1.12333946146007" />
-      <inertia ixx="0.00341579778698415" ixy="7.48827293906615E-05" ixz="-3.52421408529428E-05" iyy="0.00222599245553781" iyz="0.000146849153720477" izz="0.00217179232798496" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Servo_BR.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.698039215686274 0.698039215686274 0.698039215686274 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Servo_BR.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <!-- Joint_22 : CORRIGÉ - était type="prismatic" (erreur d'export, incohérent avec
-       Joint_12 qui est son équivalent gauche en revolute) -> repassé en revolute -->
-  <joint name="Joint_22" type="revolute">
-    <origin xyz="-0.0315 -0.070914 -0.042301" rpy="-1.3235E-05 0 3.0995" />
-    <parent link="Bogie_R" />
-    <child link="Servo_BR" />
-    <axis xyz="0 0 1" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="Wheel_BR">
-    <inertial>
-      <origin xyz="0.0139684119321734 0.00153904042729774 1.90526739020647E-05" rpy="0 0 0" />
-      <mass value="0.860786971033292" />
-      <inertia ixx="0.00301031877712066" ixy="0.000115639613227576" ixz="-4.24270461904845E-09" iyy="0.00193839813328366" iyz="5.52075575290387E-08" izz="0.00192594141740836" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_BR.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.298039215686275 0.298039215686275 0.298039215686275 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Wheel_BR.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <!-- Joint_23 : roue motrice -> passé en continuous -->
-  <joint name="Joint_23" type="continuous">
-    <origin xyz="-0.066522 0.082201 -0.12043" rpy="-1.3172E-05 0 3.0775" />
-    <parent link="Servo_BR" />
-    <child link="Wheel_BR" />
-    <axis xyz="-0.99436 -0.10605 0" />
-    <limit effort="10" velocity="10" />
-  </joint>
-
-  <link name="Support_R">
-    <inertial>
-      <origin xyz="-0.00606558433148162 0.0571741253508057 -1.48921430742632E-11" rpy="0 0 0" />
-      <mass value="0.0134356440443592" />
-      <inertia ixx="2.69181467377963E-06" ixy="2.27679189496626E-07" ixz="2.83992863876953E-13" iyy="5.87603964505148E-07" iyz="2.42524205678186E-14" izz="2.89402207404694E-06" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Support_R.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/Support_R.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_24" type="revolute">
-    <origin xyz="0.010845 0 0.11" rpy="0 0 3.0353" />
-    <parent link="Rocker_R" />
-    <child link="Support_R" />
-    <axis xyz="0.99436 0.10605 0" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <link name="RodEnd_R">
-    <inertial>
-      <origin xyz="-0.178985278115083 -0.0190858643521005 -0.00800000010219898" rpy="0 0 0" />
-      <mass value="0.247501924201797" />
-      <inertia ixx="2.910506943071E-05" ixy="-3.20579628189643E-05" ixz="1.42523939303111E-17" iyy="0.000326322896307019" iyz="1.49372998878641E-18" izz="0.000338300233875836" />
-    </inertial>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/RodEnd_R.STL" />
-      </geometry>
-      <material name="">
-        <color rgba="1 1 1 1" />
-      </material>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <mesh filename="package://benrover_description/meshes/RodEnd_R.STL" />
-      </geometry>
-    </collision>
-  </link>
-  <joint name="Joint_25" type="revolute">
-    <origin xyz="-0.011665 0.10938 0.008" rpy="0 0 3.1416" />
-    <parent link="Support_R" />
-    <child link="RodEnd_R" />
-    <axis xyz="0 0 -1" />
-    <limit lower="0" upper="0" effort="0" velocity="0" />
-  </joint>
-
-  <!-- ============================================================
-       BLOC ros2_control MINIMAL
-       Déclare les 6 roues motrices comme interfaces de commande en
-       vitesse (velocity) et de retour d'état (position + velocity),
-       nécessaires pour /cmd_vel (via un controller de type
-       diff_drive/mecanum adapté à 6 roues) et pour /joint_states.
-       Le plugin gz_ros2_control::GazeboSimSystem est celui à utiliser
-       avec ros_gz_sim (Gazebo moderne).
-       Un fichier controllers.yaml séparé sera nécessaire pour
-       configurer le controller_manager (à faire à l'étape suivante).
-       ============================================================ -->
-  <ros2_control name="BenRoverSystem" type="system">
-    <hardware>
-      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
-    </hardware>
-    <joint name="Joint_8">
-      <command_interface name="velocity" />
-      <state_interface name="position" />
-      <state_interface name="velocity" />
-    </joint>
-    <joint name="Joint_10">
-      <command_interface name="velocity" />
-      <state_interface name="position" />
-      <state_interface name="velocity" />
-    </joint>
-    <joint name="Joint_14">
-      <command_interface name="velocity" />
-      <state_interface name="position" />
-      <state_interface name="velocity" />
-    </joint>
-    <joint name="Joint_19">
-      <command_interface name="velocity" />
-      <state_interface name="position" />
-      <state_interface name="velocity" />
-    </joint>
-    <joint name="Joint_21">
-      <command_interface name="velocity" />
-      <state_interface name="position" />
-      <state_interface name="velocity" />
-    </joint>
-    <joint name="Joint_23">
-      <command_interface name="velocity" />
-      <state_interface name="position" />
-      <state_interface name="velocity" />
-    </joint>
-  </ros2_control>
-
-  <gazebo>
-    <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
-      <parameters>$(find benrover_description)/config/controllers.yaml</parameters>
-    </plugin>
-  </gazebo>
-
+  NOTE SUR LA BARRE DIFFERENTIELLE :
+    Sur un vrai rocker-bogie, une barre relie mecaniquement rocker_left et
+    rocker_right (boucle fermee) pour egaliser l'inclinaison des deux cotes.
+    URDF ne supporte pas nativement les boucles fermees (ce n'est pas un
+    graphe mais un arbre). Deux options courantes :
+      1) Ignorer la barre dans le URDF (les deux rockers restent
+         cinematiquement independants) et gerer l'egalisation dans le
+         controleur/la simulation.
+      2) Utiliser un plugin Gazebo (ex: gazebo_ros joint constraint / SDF
+         <joint type="gearbox"> ou un plugin dedie) pour recreer la
+         contrainte en simulation.
+    Ce squelette adopte l'option 1 (la plus simple) ; un commentaire indique
+    ou ajouter la contrainte si besoin.
+-->
+<robot name="benrover_skeleton">
+<material name="chassis_grey">
+<color rgba="0.6 0.6 0.6 1.0"/>
+</material>
+<material name="rocker_dark">
+<color rgba="0.25 0.25 0.25 1.0"/>
+</material>
+<material name="wheel_black">
+<color rgba="0.05 0.05 0.05 1.0"/>
+</material>
+<!--
+ ===================== CHASSIS ===================== 
+-->
+<link name="base_link">
+<inertial>
+<origin xyz="0 0 0" rpy="0 0 0"/>
+<mass value="12.0"/>
+<inertia ixx="0.15" ixy="0" ixz="0" iyy="0.20" iyz="0" izz="0.25"/>
+</inertial>
+<visual>
+<origin xyz="0 0 0" rpy="0 0 0"/>
+<geometry>
+<!-- Mesh STL non disponible pour l'instant -> primitive de repli en attendant le vrai CAO -->
+<box size="0.5 0.35 0.15"/>
+</geometry>
+<material name="chassis_grey"/>
+</visual>
+<collision>
+<origin xyz="0 0 0" rpy="0 0 0"/>
+<geometry>
+<box size="0.5 0.35 0.15"/>
+</geometry>
+</collision>
+</link>
+<!--
+ ===================== COTE GAUCHE ===================== 
+-->
+<!-- Rocker gauche : bras principal de suspension -->
+<link name="rocker_left">
+<inertial>
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
+<mass value="1.2"/>
+<inertia ixx="0.01" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.02"/>
+</inertial>
+<visual>
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
+<geometry>
+<box size="0.40 0.04 0.04"/>
+</geometry>
+<material name="rocker_dark"/>
+</visual>
+<collision>
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
+<geometry>
+<box size="0.40 0.04 0.04"/>
+</geometry>
+</collision>
+</link>
+<joint name="rocker_left_joint" type="revolute">
+<!--
+ Pivot du rocker sur le chassis. Axe Y = bascule avant/arriere. 
+-->
+<origin xyz="0.05 0.20 0.0" rpy="0 0 0"/>
+<parent link="base_link"/>
+<child link="rocker_left"/>
+<axis xyz="0 1 0"/>
+<limit lower="-0.6" upper="0.6" effort="50" velocity="1.0"/>
+<dynamics damping="0.2" friction="0.1"/>
+</joint>
+<!--
+ Point d'ancrage possible pour la barre differentielle (voir note en tete de fichier) 
+-->
+<!--
+ Bogie gauche : porte les roues centrale et arriere 
+-->
+<link name="bogie_left">
+<inertial>
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
+<mass value="0.8"/>
+<inertia ixx="0.006" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+</inertial>
+<visual>
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
+<geometry>
+<box size="0.26 0.04 0.04"/>
+</geometry>
+<material name="rocker_dark"/>
+</visual>
+<collision>
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
+<geometry>
+<box size="0.26 0.04 0.04"/>
+</geometry>
+</collision>
+</link>
+<joint name="bogie_left_joint" type="revolute">
+<!-- Pivot du bogie en arriere du pivot du rocker. -->
+<origin xyz="-0.20 0 -0.04" rpy="0 0 0"/>
+<parent link="rocker_left"/>
+<child link="bogie_left"/>
+<axis xyz="0 1 0"/>
+<limit lower="-0.4" upper="0.4" effort="30" velocity="1.0"/>
+<dynamics damping="0.2" friction="0.1"/>
+</joint>
+<!-- Direction avant gauche -->
+<link name="steer_front_left">
+<inertial>
+<mass value="0.1"/>
+<inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
+</inertial>
+</link>
+<joint name="steer_front_left_joint" type="revolute">
+<!-- Roue avant en avant du pivot du rocker. -->
+<origin xyz="0.20 0 -0.06" rpy="0 0 0"/>
+<parent link="rocker_left"/>
+<child link="steer_front_left"/>
+<axis xyz="0 0 1"/>
+<limit lower="-0.6" upper="0.6" effort="10" velocity="2.0"/>
+<dynamics damping="0.1" friction="0.05"/>
+</joint>
+<!-- Roue avant gauche -->
+<link name="wheel_front_left">
+<inertial>
+<mass value="0.6"/>
+<inertia ixx="0.002" ixy="0" ixz="0" iyy="0.003" iyz="0" izz="0.002"/>
+</inertial>
+<visual>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+<material name="wheel_black"/>
+</visual>
+<collision>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+</collision>
+</link>
+<joint name="wheel_front_left_joint" type="continuous">
+<origin xyz="0 0 0" rpy="0 0 0"/>
+<parent link="steer_front_left"/>
+<child link="wheel_front_left"/>
+<axis xyz="0 1 0"/>
+<dynamics damping="0.05" friction="0.02"/>
+</joint>
+<!-- Roue centrale gauche (pas de direction) -->
+<link name="wheel_middle_left">
+<inertial>
+<mass value="0.6"/>
+<inertia ixx="0.002" ixy="0" ixz="0" iyy="0.003" iyz="0" izz="0.002"/>
+</inertial>
+<visual>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+<material name="wheel_black"/>
+</visual>
+<collision>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+</collision>
+</link>
+<joint name="wheel_middle_left_joint" type="continuous">
+<!-- Roue centrale en avant du pivot du bogie. -->
+<origin xyz="0.12 0 -0.08" rpy="0 0 0"/>
+<parent link="bogie_left"/>
+<child link="wheel_middle_left"/>
+<axis xyz="0 1 0"/>
+<dynamics damping="0.05" friction="0.02"/>
+</joint>
+<!-- Direction arriere gauche -->
+<link name="steer_rear_left">
+<inertial>
+<mass value="0.1"/>
+<inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
+</inertial>
+</link>
+<joint name="steer_rear_left_joint" type="revolute">
+<!-- Roue arriere en arriere du pivot du bogie. -->
+<origin xyz="-0.12 0 -0.08" rpy="0 0 0"/>
+<parent link="bogie_left"/>
+<child link="steer_rear_left"/>
+<axis xyz="0 0 1"/>
+<limit lower="-0.6" upper="0.6" effort="10" velocity="2.0"/>
+<dynamics damping="0.1" friction="0.05"/>
+</joint>
+<!-- Roue arriere gauche -->
+<link name="wheel_rear_left">
+<inertial>
+<mass value="0.6"/>
+<inertia ixx="0.002" ixy="0" ixz="0" iyy="0.003" iyz="0" izz="0.002"/>
+</inertial>
+<visual>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+<material name="wheel_black"/>
+</visual>
+<collision>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+</collision>
+</link>
+<joint name="wheel_rear_left_joint" type="continuous">
+<origin xyz="0 0 0" rpy="0 0 0"/>
+<parent link="steer_rear_left"/>
+<child link="wheel_rear_left"/>
+<axis xyz="0 1 0"/>
+<dynamics damping="0.05" friction="0.02"/>
+</joint>
+<!--
+ ===================== COTE DROIT (miroir) ===================== 
+-->
+<link name="rocker_right">
+<inertial>
+<origin xyz="0.15 0 -0.02" rpy="0 0 0"/>
+<mass value="1.2"/>
+<inertia ixx="0.01" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.02"/>
+</inertial>
+<visual>
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
+<geometry>
+<box size="0.40 0.04 0.04"/>
+</geometry>
+<material name="rocker_dark"/>
+</visual>
+<collision>
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
+<geometry>
+<box size="0.40 0.04 0.04"/>
+</geometry>
+</collision>
+</link>
+<joint name="rocker_right_joint" type="revolute">
+<origin xyz="0.05 -0.20 0.0" rpy="0 0 0"/>
+<parent link="base_link"/>
+<child link="rocker_right"/>
+<axis xyz="0 1 0"/>
+<limit lower="-0.6" upper="0.6" effort="50" velocity="1.0"/>
+<dynamics damping="0.2" friction="0.1"/>
+</joint>
+<link name="bogie_right">
+<inertial>
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
+<mass value="0.8"/>
+<inertia ixx="0.006" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+</inertial>
+<visual>
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
+<geometry>
+<box size="0.26 0.04 0.04"/>
+</geometry>
+<material name="rocker_dark"/>
+</visual>
+<collision>
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
+<geometry>
+<box size="0.26 0.04 0.04"/>
+</geometry>
+</collision>
+</link>
+<joint name="bogie_right_joint" type="revolute">
+<origin xyz="-0.20 0 -0.04" rpy="0 0 0"/>
+<parent link="rocker_right"/>
+<child link="bogie_right"/>
+<axis xyz="0 1 0"/>
+<limit lower="-0.4" upper="0.4" effort="30" velocity="1.0"/>
+<dynamics damping="0.2" friction="0.1"/>
+</joint>
+<link name="steer_front_right">
+<inertial>
+<mass value="0.1"/>
+<inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
+</inertial>
+</link>
+<joint name="steer_front_right_joint" type="revolute">
+<origin xyz="0.20 0 -0.06" rpy="0 0 0"/>
+<parent link="rocker_right"/>
+<child link="steer_front_right"/>
+<axis xyz="0 0 1"/>
+<limit lower="-0.6" upper="0.6" effort="10" velocity="2.0"/>
+<dynamics damping="0.1" friction="0.05"/>
+</joint>
+<link name="wheel_front_right">
+<inertial>
+<mass value="0.6"/>
+<inertia ixx="0.002" ixy="0" ixz="0" iyy="0.003" iyz="0" izz="0.002"/>
+</inertial>
+<visual>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+<material name="wheel_black"/>
+</visual>
+<collision>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+</collision>
+</link>
+<joint name="wheel_front_right_joint" type="continuous">
+<origin xyz="0 0 0" rpy="0 0 0"/>
+<parent link="steer_front_right"/>
+<child link="wheel_front_right"/>
+<axis xyz="0 1 0"/>
+<dynamics damping="0.05" friction="0.02"/>
+</joint>
+<link name="wheel_middle_right">
+<inertial>
+<mass value="0.6"/>
+<inertia ixx="0.002" ixy="0" ixz="0" iyy="0.003" iyz="0" izz="0.002"/>
+</inertial>
+<visual>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+<material name="wheel_black"/>
+</visual>
+<collision>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+</collision>
+</link>
+<joint name="wheel_middle_right_joint" type="continuous">
+<origin xyz="0.12 0 -0.08" rpy="0 0 0"/>
+<parent link="bogie_right"/>
+<child link="wheel_middle_right"/>
+<axis xyz="0 1 0"/>
+<dynamics damping="0.05" friction="0.02"/>
+</joint>
+<link name="steer_rear_right">
+<inertial>
+<mass value="0.1"/>
+<inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
+</inertial>
+</link>
+<joint name="steer_rear_right_joint" type="revolute">
+<origin xyz="-0.12 0 -0.08" rpy="0 0 0"/>
+<parent link="bogie_right"/>
+<child link="steer_rear_right"/>
+<axis xyz="0 0 1"/>
+<limit lower="-0.6" upper="0.6" effort="10" velocity="2.0"/>
+<dynamics damping="0.1" friction="0.05"/>
+</joint>
+<link name="wheel_rear_right">
+<inertial>
+<mass value="0.6"/>
+<inertia ixx="0.002" ixy="0" ixz="0" iyy="0.003" iyz="0" izz="0.002"/>
+</inertial>
+<visual>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+<material name="wheel_black"/>
+</visual>
+<collision>
+<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+<geometry>
+<cylinder radius="0.09" length="0.06"/>
+</geometry>
+</collision>
+</link>
+<joint name="wheel_rear_right_joint" type="continuous">
+<origin xyz="0 0 0" rpy="0 0 0"/>
+<parent link="steer_rear_right"/>
+<child link="wheel_rear_right"/>
+<axis xyz="0 1 0"/>
+<dynamics damping="0.05" friction="0.02"/>
+</joint>
+<!--
+ ===================== CAPTEURS =====================
+       Positions placeholder : a ajuster une fois les vraies cotes connues.
+       Syntaxe gz-sim native (pas de plugin par capteur individuel comme en
+       Classic) : le <topic> definit le nom sur le bus Gazebo Transport.
+       Necessite que le monde charge le system "gz-sim-sensors-system"
+       (a ajouter au niveau du world SDF, pas ici) pour que ces capteurs
+       soient effectivement simules.
+  
+-->
+<!-- LIDAR : place au sommet du chassis, centre -->
+<link name="lidar_link">
+<inertial>
+<mass value="0.15"/>
+<inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+</inertial>
+<visual>
+<geometry>
+<cylinder radius="0.04" length="0.05"/>
+</geometry>
+<material name="rocker_dark"/>
+</visual>
+<collision>
+<geometry>
+<cylinder radius="0.04" length="0.05"/>
+</geometry>
+</collision>
+</link>
+<joint name="lidar_joint" type="fixed">
+<origin xyz="0 0 0.15" rpy="0 0 0"/>
+<parent link="base_link"/>
+<child link="lidar_link"/>
+</joint>
+<gazebo reference="lidar_link">
+<sensor name="lidar_sensor" type="gpu_lidar">
+<topic>scan</topic>
+<update_rate>10</update_rate>
+<always_on>true</always_on>
+<visualize>false</visualize>
+<lidar>
+<scan>
+<horizontal>
+<samples>360</samples>
+<resolution>1</resolution>
+<min_angle>-3.14159</min_angle>
+<max_angle>3.14159</max_angle>
+</horizontal>
+</scan>
+<range>
+<min>0.10</min>
+<max>12.0</max>
+<resolution>0.01</resolution>
+</range>
+</lidar>
+</sensor>
+</gazebo>
+<!-- IMU : place au centre du chassis -->
+<link name="imu_link">
+<inertial>
+<mass value="0.05"/>
+<inertia ixx="0.00002" ixy="0" ixz="0" iyy="0.00002" iyz="0" izz="0.00002"/>
+</inertial>
+</link>
+<joint name="imu_joint" type="fixed">
+<origin xyz="0 0 0.02" rpy="0 0 0"/>
+<parent link="base_link"/>
+<child link="imu_link"/>
+</joint>
+<gazebo reference="imu_link">
+<sensor name="imu_sensor" type="imu">
+<topic>imu</topic>
+<always_on>true</always_on>
+<update_rate>100</update_rate>
+</sensor>
+</gazebo>
+<!--
+ ===================== PLUGINS GAZEBO SIM (Garden / gz-sim7) =====================
+       Remplacent les plugins Gazebo Classic du fichier original. Publient
+       sur le bus Gazebo Transport : un pont ros_gz_bridge (a configurer
+       separement) sera necessaire pour exposer ces topics cote ROS 2.
+  
+-->
+<!--
+ Encodeurs de roues + articulations -> etat reel (physique) sur le bus gz.
+       Remplace le joint_state_publisher_gui (qui ne fait que rejouer des
+       valeurs arbitraires) : ici les positions/vitesses viennent du moteur
+       physique de Gazebo. 
+-->
+<gazebo>
+<plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+<topic>joint_states</topic>
+<update_rate>50</update_rate>
+<joint_name>rocker_left_joint</joint_name>
+<joint_name>bogie_left_joint</joint_name>
+<joint_name>steer_front_left_joint</joint_name>
+<joint_name>steer_rear_left_joint</joint_name>
+<joint_name>wheel_front_left_joint</joint_name>
+<joint_name>wheel_middle_left_joint</joint_name>
+<joint_name>wheel_rear_left_joint</joint_name>
+<joint_name>rocker_right_joint</joint_name>
+<joint_name>bogie_right_joint</joint_name>
+<joint_name>steer_front_right_joint</joint_name>
+<joint_name>steer_rear_right_joint</joint_name>
+<joint_name>wheel_front_right_joint</joint_name>
+<joint_name>wheel_middle_right_joint</joint_name>
+<joint_name>wheel_rear_right_joint</joint_name>
+</plugin>
+</gazebo>
+<!--
+ Controle differentiel -> repond a /cmd_vel (via le pont ros_gz_bridge).
+       Un cote = les 3 roues gauches, l'autre = les 3 roues droites
+       (entrainement type skid/diff sur 6 roues, courant sur les rovers a
+       suspension rocker-bogie). Seuls les joints "wheel_*" (continuous)
+       sont pilotes ici ; les joints "steer_*" restent figes pour cette
+       premiere version (voir note en tete de fichier). 
+-->
+<gazebo>
+<plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+<left_joint>wheel_front_left_joint</left_joint>
+<left_joint>wheel_middle_left_joint</left_joint>
+<left_joint>wheel_rear_left_joint</left_joint>
+<right_joint>wheel_front_right_joint</right_joint>
+<right_joint>wheel_middle_right_joint</right_joint>
+<right_joint>wheel_rear_right_joint</right_joint>
+<wheel_separation>0.40</wheel_separation>
+<wheel_radius>0.09</wheel_radius>
+<odom_publish_frequency>30</odom_publish_frequency>
+<topic>cmd_vel</topic>
+<odom_topic>odom</odom_topic>
+<frame_id>odom</frame_id>
+<child_frame_id>base_link</child_frame_id>
+</plugin>
+</gazebo>
 </robot>

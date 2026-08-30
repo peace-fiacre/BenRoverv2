@@ -1,0 +1,60 @@
+# Configuration du pont ros_gz_bridge pour BenRover (Gazebo Garden / gz-sim7)
+#
+# Chaque entree relie un topic Gazebo Transport a un topic ROS 2 equivalent.
+# direction:
+#   GZ_TO_ROS      -> Gazebo publie, ROS 2 recoit (capteurs, etats, odometrie)
+#   ROS_TO_GZ      -> ROS 2 publie, Gazebo recoit (commandes)
+#   BIDIRECTIONAL  -> dans les deux sens
+#
+# Noms de topics Gazebo repris exactement de ce qui est declare dans
+# benrover.urdf (<topic> de chaque plugin/capteur).
+
+# Horloge de simulation - necessaire des que use_sim_time est utilise
+# (RViz, nodes de perception/planification, etc.)
+- ros_topic_name: "clock"
+  gz_topic_name: "clock"
+  ros_type_name: "rosgraph_msgs/msg/Clock"
+  gz_type_name: "gz.msgs.Clock"
+  direction: GZ_TO_ROS
+
+# Commande de vitesse : ROS 2 -> Gazebo (pilote le plugin DiffDrive)
+- ros_topic_name: "cmd_vel"
+  gz_topic_name: "cmd_vel"
+  ros_type_name: "geometry_msgs/msg/Twist"
+  gz_type_name: "gz.msgs.Twist"
+  direction: ROS_TO_GZ
+
+# Odometrie publiee par le plugin DiffDrive
+- ros_topic_name: "odom"
+  gz_topic_name: "odom"
+  ros_type_name: "nav_msgs/msg/Odometry"
+  gz_type_name: "gz.msgs.Odometry"
+  direction: GZ_TO_ROS
+
+# TF dynamique (odom -> base_link) publie par le plugin DiffDrive
+- ros_topic_name: "tf"
+  gz_topic_name: "tf"
+  ros_type_name: "tf2_msgs/msg/TFMessage"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS
+
+# Etats des articulations, publies par le plugin JointStatePublisher
+- ros_topic_name: "joint_states"
+  gz_topic_name: "joint_states"
+  ros_type_name: "sensor_msgs/msg/JointState"
+  gz_type_name: "gz.msgs.Model"
+  direction: GZ_TO_ROS
+
+# LIDAR (capteur gpu_lidar declare sur lidar_link)
+- ros_topic_name: "scan"
+  gz_topic_name: "scan"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
+
+# IMU (capteur imu declare sur imu_link)
+- ros_topic_name: "imu"
+  gz_topic_name: "imu"
+  ros_type_name: "sensor_msgs/msg/Imu"
+  gz_type_name: "gz.msgs.IMU"
+  direction: GZ_TO_ROS
