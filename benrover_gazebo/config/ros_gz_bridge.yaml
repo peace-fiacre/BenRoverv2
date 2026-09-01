@@ -1,5 +1,3 @@
-
-
 # Configuration du pont ros_gz_bridge pour BenRover (Gazebo Garden / gz-sim7)
 #
 # Chaque entree relie un topic Gazebo Transport a un topic ROS 2 equivalent.
@@ -7,9 +5,6 @@
 #   GZ_TO_ROS      -> Gazebo publie, ROS 2 recoit (capteurs, etats, odometrie)
 #   ROS_TO_GZ      -> ROS 2 publie, Gazebo recoit (commandes)
 #   BIDIRECTIONAL  -> dans les deux sens
-#
-# Noms de topics Gazebo repris exactement de ce qui est declare dans
-# benrover.urdf (<topic> de chaque plugin/capteur).
 
 # Horloge de simulation - necessaire des que use_sim_time est utilise
 # (RViz, nodes de perception/planification, etc.)
@@ -48,14 +43,19 @@
   direction: GZ_TO_ROS
 
 # LIDAR (capteur gpu_lidar declare sur lidar_link)
-- ros_topic_name: "scan"
+# NOM INTERNE volontairement different de /scan : le frame_id genere par
+# Gazebo (ex: benrover/base_link/lidar_sensor) ne correspond pas au nom
+# de lien URDF (lidar_link) attendu par le TF tree. sensor_driver_node
+# s'abonne a ce topic brut, corrige le frame_id, et republie le resultat
+# sur /scan (topic final, standard, utilise par le reste du systeme).
+- ros_topic_name: "scan_raw"
   gz_topic_name: "scan"
   ros_type_name: "sensor_msgs/msg/LaserScan"
   gz_type_name: "gz.msgs.LaserScan"
   direction: GZ_TO_ROS
 
-# IMU (capteur imu declare sur imu_link)
-- ros_topic_name: "imu"
+# IMU (capteur imu declare sur imu_link) - meme logique que scan_raw
+- ros_topic_name: "imu_raw"
   gz_topic_name: "imu"
   ros_type_name: "sensor_msgs/msg/Imu"
   gz_type_name: "gz.msgs.IMU"
