@@ -1,3 +1,5 @@
+
+
 # Configuration du pont ros_gz_bridge pour BenRover (Gazebo Garden / gz-sim7)
 #
 # Chaque entree relie un topic Gazebo Transport a un topic ROS 2 equivalent.

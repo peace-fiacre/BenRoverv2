@@ -14,6 +14,7 @@ def generate_launch_description():
 
     urdf_path = os.path.join(pkg_description, 'urdf', 'benrover.urdf')
     bridge_config_path = os.path.join(pkg_gazebo, 'config', 'ros_gz_bridge.yaml')
+    world_path = os.path.join(pkg_gazebo, 'worlds', 'benrover_world.sdf')
 
     with open(urdf_path, 'r') as urdf_file:
         robot_description_content = urdf_file.read()
@@ -24,13 +25,15 @@ def generate_launch_description():
     if robot_description_content.lstrip().startswith('<?xml'):
         robot_description_content = robot_description_content.split('?>', 1)[1].lstrip()
 
-    # Lance Gazebo Garden avec un monde vide (-r = demarre la simulation
-    # directement, sans attendre un clic sur "play").
+    # Lance Gazebo avec notre monde personnalise (system Sensors inclus,
+    # necessaire pour que LIDAR/IMU produisent des donnees - empty.sdf ne
+    # le charge pas par defaut). -r = demarre la simulation directement,
+    # sans attendre un clic sur "play".
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')
         ),
-        launch_arguments={'gz_args': '-r empty.sdf'}.items(),
+        launch_arguments={'gz_args': f'-r {world_path}'}.items(),
     )
 
     robot_state_publisher_node = Node(

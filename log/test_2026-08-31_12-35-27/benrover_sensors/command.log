@@ -1,0 +1,2 @@
+Invoking command in '/home/peace-fiacre/Projects/BenRover/src/benrover_sensors': PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -m unittest -v
+Invoked command in '/home/peace-fiacre/Projects/BenRover/src/benrover_sensors' returned '0': PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -m unittest -v

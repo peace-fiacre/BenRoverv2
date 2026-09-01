@@ -1,0 +1,79 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <world name="benrover_world">
+
+    <!--
+      Systems de base, presents par defaut dans empty.sdf : physique du
+      monde, gestion des commandes utilisateur (spawn/delete/etc.), et
+      diffusion de la scene (necessaire pour que Gazebo GUI affiche les
+      objets). Sans eux, rien ne bouge et rien ne s'affiche.
+    -->
+    <plugin filename="ignition-gazebo-physics-system" name="ignition::gazebo::systems::Physics">
+    </plugin>
+    <plugin filename="ignition-gazebo-user-commands-system" name="ignition::gazebo::systems::UserCommands">
+    </plugin>
+    <plugin filename="ignition-gazebo-scene-broadcaster-system" name="ignition::gazebo::systems::SceneBroadcaster">
+    </plugin>
+
+    <!--
+      Le system manquant dans empty.sdf : sans lui, les capteurs <sensor>
+      declares dans l'URDF (lidar_link, imu_link) existent dans la scene
+      mais ne calculent et ne publient jamais de donnees. C'est lui qui
+      active reellement le LIDAR et l'IMU.
+      render_engine=ogre2 : moteur de rendu necessaire au calcul des rayons
+      LIDAR (simulation optique), meme en execution sans interface graphique.
+    -->
+    <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <!-- Gravite standard (Terre), en m/s^2, sur l'axe Z (vers le bas) -->
+    <gravity>0 0 -9.8</gravity>
+
+    <!-- Lumiere directionnelle (type "soleil") : necessaire pour que les
+         capteurs visuels (cameras) et le rendu general aient de la lumiere -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Sol plat, sert de reference physique (collision) pour que le
+         rover ne tombe pas indefiniment -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

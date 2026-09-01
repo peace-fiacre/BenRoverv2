@@ -26,34 +26,6 @@
       roue continuous) : ils restent figes a 0 pour cette premiere version.
       Un controleur de direction pourra etre ajoute plus tard sans toucher
       a cette base.
-
-  ARCHITECTURE CINEMATIQUE (arbre, pas de boucle fermee) :
-
-    base_link (chassis)
-     ├── rocker_left            (revolute, axe Y)
-     │     ├── steer_front_left  (revolute, axe Z)  -> wheel_front_left  (continuous, axe Y)
-     │     └── bogie_left        (revolute, axe Y)
-     │           ├── wheel_middle_left (continuous, axe Y)
-     │           └── steer_rear_left  (revolute, axe Z) -> wheel_rear_left (continuous, axe Y)
-     └── rocker_right           (revolute, axe Y)  [miroir du cote gauche]
-           ├── steer_front_right -> wheel_front_right
-           └── bogie_right
-                 ├── wheel_middle_right
-                 └── steer_rear_right -> wheel_rear_right
-
-  NOTE SUR LA BARRE DIFFERENTIELLE :
-    Sur un vrai rocker-bogie, une barre relie mecaniquement rocker_left et
-    rocker_right (boucle fermee) pour egaliser l'inclinaison des deux cotes.
-    URDF ne supporte pas nativement les boucles fermees (ce n'est pas un
-    graphe mais un arbre). Deux options courantes :
-      1) Ignorer la barre dans le URDF (les deux rockers restent
-         cinematiquement independants) et gerer l'egalisation dans le
-         controleur/la simulation.
-      2) Utiliser un plugin Gazebo (ex: gazebo_ros joint constraint / SDF
-         <joint type="gearbox"> ou un plugin dedie) pour recreer la
-         contrainte en simulation.
-    Ce squelette adopte l'option 1 (la plus simple) ; un commentaire indique
-    ou ajouter la contrainte si besoin.
 -->
 <robot name="benrover_skeleton">
 <material name="chassis_grey">
