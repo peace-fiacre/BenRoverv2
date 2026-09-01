@@ -16,10 +16,21 @@
     </plugin>
 
     <!--
-      Le system manquant dans empty.sdf : sans lui, les capteurs <sensor>
-      declares dans l'URDF (lidar_link, imu_link) existent dans la scene
-      mais ne calculent et ne publient jamais de donnees. C'est lui qui
-      active reellement le LIDAR et l'IMU.
+      System dedie a l'IMU : contrairement au LIDAR/cameras (geres par le
+      system generique "Sensors" ci-dessous), l'IMU est un capteur "non
+      visuel" qui a son propre system Gazebo separe. Sans lui, le capteur
+      IMU declare dans l'URDF existe mais ne publie jamais rien - meme si
+      le system Sensors, lui, est deja charge.
+    -->
+    <plugin filename="ignition-gazebo-imu-system" name="ignition::gazebo::systems::Imu">
+    </plugin>
+
+    <!--
+      Le system manquant dans empty.sdf : sans lui, le capteur <sensor>
+      LIDAR declare dans l'URDF (lidar_link) existe dans la scene mais
+      ne calcule et ne publie jamais de donnees. C'est lui qui active
+      reellement le LIDAR (et plus generalement tout capteur de type
+      "rendu visuel" : cameras, etc.).
       render_engine=ogre2 : moteur de rendu necessaire au calcul des rayons
       LIDAR (simulation optique), meme en execution sans interface graphique.
     -->

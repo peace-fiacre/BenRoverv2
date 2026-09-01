@@ -23,8 +23,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'sensor_acquisition_node = '
-            'benrover_sensors.sensor_acquisition_node:main',
+            'sensor_driver_node = '
+            'benrover_sensors.sensor_driver_node:main',
         ],
     },
 )

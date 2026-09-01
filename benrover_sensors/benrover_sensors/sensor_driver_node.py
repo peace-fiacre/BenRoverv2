@@ -19,7 +19,7 @@ WHEEL_JOINT_NAMES = [
 class SensorAcquisitionNode(Node):
 
     def __init__(self):
-        super().__init__('sensor_acquisition_node')
+        super().__init__('sensor_driver_node')
 
     
         self.declare_parameter('stale_timeout_sec', 1.0)

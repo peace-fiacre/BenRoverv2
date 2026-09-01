@@ -14,7 +14,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 
-from benrover_sensors.sensor_acquisition_node import (
+from benrover_sensors.sensor_driver_node import (
     SensorAcquisitionNode,
     WHEEL_JOINT_NAMES,
 )
