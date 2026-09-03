@@ -1,31 +1,31 @@
 <?xml version="1.0" ?>
 <sdf version="1.9">
-  <world name="benrover_world">
+<world name="benrover_world">
 
-    <!--
+<!--
       Systems de base, presents par defaut dans empty.sdf : physique du
       monde, gestion des commandes utilisateur (spawn/delete/etc.), et
       diffusion de la scene (necessaire pour que Gazebo GUI affiche les
       objets). Sans eux, rien ne bouge et rien ne s'affiche.
     -->
-    <plugin filename="ignition-gazebo-physics-system" name="ignition::gazebo::systems::Physics">
-    </plugin>
-    <plugin filename="ignition-gazebo-user-commands-system" name="ignition::gazebo::systems::UserCommands">
-    </plugin>
-    <plugin filename="ignition-gazebo-scene-broadcaster-system" name="ignition::gazebo::systems::SceneBroadcaster">
-    </plugin>
+<plugin filename="ignition-gazebo-physics-system" name="ignition::gazebo::systems::Physics">
+</plugin>
+<plugin filename="ignition-gazebo-user-commands-system" name="ignition::gazebo::systems::UserCommands">
+</plugin>
+<plugin filename="ignition-gazebo-scene-broadcaster-system" name="ignition::gazebo::systems::SceneBroadcaster">
+</plugin>
 
-    <!--
+<!--
       System dedie a l'IMU : contrairement au LIDAR/cameras (geres par le
       system generique "Sensors" ci-dessous), l'IMU est un capteur "non
       visuel" qui a son propre system Gazebo separe. Sans lui, le capteur
       IMU declare dans l'URDF existe mais ne publie jamais rien - meme si
       le system Sensors, lui, est deja charge.
     -->
-    <plugin filename="ignition-gazebo-imu-system" name="ignition::gazebo::systems::Imu">
-    </plugin>
+<plugin filename="ignition-gazebo-imu-system" name="ignition::gazebo::systems::Imu">
+</plugin>
 
-    <!--
+<!--
       Le system manquant dans empty.sdf : sans lui, le capteur <sensor>
       LIDAR declare dans l'URDF (lidar_link) existe dans la scene mais
       ne calcule et ne publie jamais de donnees. C'est lui qui active
@@ -34,57 +34,236 @@
       render_engine=ogre2 : moteur de rendu necessaire au calcul des rayons
       LIDAR (simulation optique), meme en execution sans interface graphique.
     -->
-    <plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors">
-      <render_engine>ogre2</render_engine>
-    </plugin>
+<plugin filename="ignition-gazebo-sensors-system" name="ignition::gazebo::systems::Sensors">
+<render_engine>ogre2</render_engine>
+</plugin>
 
-    <!-- Gravite standard (Terre), en m/s^2, sur l'axe Z (vers le bas) -->
-    <gravity>0 0 -9.8</gravity>
 
-    <!-- Lumiere directionnelle (type "soleil") : necessaire pour que les
-         capteurs visuels (cameras) et le rendu general aient de la lumiere -->
-    <light type="directional" name="sun">
-      <cast_shadows>true</cast_shadows>
-      <pose>0 0 10 0 0 0</pose>
-      <diffuse>0.8 0.8 0.8 1</diffuse>
-      <specular>0.2 0.2 0.2 1</specular>
-      <attenuation>
-        <range>1000</range>
-        <constant>0.9</constant>
-        <linear>0.01</linear>
-        <quadratic>0.001</quadratic>
-      </attenuation>
-      <direction>-0.5 0.1 -0.9</direction>
-    </light>
+<gravity>0 0 -9.8</gravity>
 
-    <!-- Sol plat, sert de reference physique (collision) pour que le
-         rover ne tombe pas indefiniment -->
-    <model name="ground_plane">
-      <static>true</static>
-      <link name="link">
-        <collision name="collision">
-          <geometry>
-            <plane>
-              <normal>0 0 1</normal>
-              <size>100 100</size>
-            </plane>
-          </geometry>
-        </collision>
-        <visual name="visual">
-          <geometry>
-            <plane>
-              <normal>0 0 1</normal>
-              <size>100 100</size>
-            </plane>
-          </geometry>
-          <material>
-            <ambient>0.8 0.8 0.8 1</ambient>
-            <diffuse>0.8 0.8 0.8 1</diffuse>
-            <specular>0.8 0.8 0.8 1</specular>
-          </material>
-        </visual>
-      </link>
-    </model>
+<!--
+      Lumiere directionnelle. Sur Mars la lumiere du Soleil est plus
+      faible et plus rougeatre (atmosphere fine chargee en poussiere
+      ferreuse) qu'sur Terre - diffuse/specular assombris et teintes
+      vers le rouge/orange pour un rendu plus represantatif, purement
+      cosmetique (n'affecte pas le LIDAR/IMU/odometrie).
+    -->
+<light type="directional" name="sun">
+<cast_shadows>true</cast_shadows>
+<pose>0 0 10 0 0 0</pose>
+<diffuse>0.7 0.55 0.45 1</diffuse>
+<specular>0.15 0.12 0.1 1</specular>
+<attenuation>
+<range>1000</range>
+<constant>0.9</constant>
+<linear>0.01</linear>
+<quadratic>0.001</quadratic>
+</attenuation>
+<direction>-0.5 0.1 -0.9</direction>
+</light>
 
-  </world>
+<!--
+      Ciel/ambiance martienne (teinte ocre/rougeatre au lieu du bleu
+      par defaut) - purement visuel, aide a distinguer d'un coup
+      d'oeil ce monde des mondes "Terre" existants.
+    -->
+<scene>
+<ambient>0.6 0.45 0.35 1</ambient>
+<background>0.6 0.35 0.25 1</background>
+<grid>false</grid>
+</scene>
+
+<!--
+      Sol : texture terreuse/rougeatre (couleur ocre) au lieu du gris
+      terrestre par defaut, pour rester coherent avec le reste du monde.
+      Sert toujours de reference physique (collision) pour que le rover
+      ne tombe pas indefiniment.
+    -->
+<model name="ground_plane">
+<static>true</static>
+<link name="link">
+<collision name="collision">
+<geometry>
+<plane>
+<normal>0 0 1</normal>
+<size>100 100</size>
+</plane>
+</geometry>
+</collision>
+<visual name="visual">
+<geometry>
+<plane>
+<normal>0 0 1</normal>
+<size>100 100</size>
+</plane>
+</geometry>
+<material>
+<ambient>0.6 0.35 0.2 1</ambient>
+<diffuse>0.6 0.35 0.2 1</diffuse>
+<specular>0.2 0.15 0.1 1</specular>
+</material>
+</visual>
+</link>
+</model>
+
+<!--
+      Murs/obstacles pour donner de la matiere au SLAM (slam_toolbox).
+      Un monde vide et plat ne produit aucune occupancy grid
+      exploitable. 4 murs disposes en enceinte ouverte autour du point
+      de spawn du rover (origine), + 2 blocs isoles au milieu pour
+      creer des features distinctes (utile pour la fermeture de
+      boucle / recalage du scan-matching).
+    -->
+
+<model name="wall_north">
+<static>true</static>
+<pose>0 5 0.5 0 0 0</pose>
+<link name="link">
+<collision name="collision">
+<geometry>
+<box>
+<size>10 0.2 1</size>
+</box>
+</geometry>
+</collision>
+<visual name="visual">
+<geometry>
+<box>
+<size>10 0.2 1</size>
+</box>
+</geometry>
+<material>
+<ambient>0.5 0.3 0.2 1</ambient>
+<diffuse>0.5 0.3 0.2 1</diffuse>
+</material>
+</visual>
+</link>
+</model>
+
+<model name="wall_south">
+<static>true</static>
+<pose>0 -5 0.5 0 0 0</pose>
+<link name="link">
+<collision name="collision">
+<geometry>
+<box>
+<size>10 0.2 1</size>
+</box>
+</geometry>
+</collision>
+<visual name="visual">
+<geometry>
+<box>
+<size>10 0.2 1</size>
+</box>
+</geometry>
+<material>
+<ambient>0.5 0.3 0.2 1</ambient>
+<diffuse>0.5 0.3 0.2 1</diffuse>
+</material>
+</visual>
+</link>
+</model>
+
+<model name="wall_east">
+<static>true</static>
+<pose>5 0 0.5 0 0 1.5708</pose>
+<link name="link">
+<collision name="collision">
+<geometry>
+<box>
+<size>10 0.2 1</size>
+</box>
+</geometry>
+</collision>
+<visual name="visual">
+<geometry>
+<box>
+<size>10 0.2 1</size>
+</box>
+</geometry>
+<material>
+<ambient>0.5 0.3 0.2 1</ambient>
+<diffuse>0.5 0.3 0.2 1</diffuse>
+</material>
+</visual>
+</link>
+</model>
+
+<model name="wall_west">
+<static>true</static>
+<pose>-5 0 0.5 0 0 1.5708</pose>
+<link name="link">
+<collision name="collision">
+<geometry>
+<box>
+<size>10 0.2 1</size>
+</box>
+</geometry>
+</collision>
+<visual name="visual">
+<geometry>
+<box>
+<size>10 0.2 1</size>
+</box>
+</geometry>
+<material>
+<ambient>0.5 0.3 0.2 1</ambient>
+<diffuse>0.5 0.3 0.2 1</diffuse>
+</material>
+</visual>
+</link>
+</model>
+
+<model name="obstacle_rock_1">
+<static>true</static>
+<pose>1.5 1.5 0.3 0 0 0</pose>
+<link name="link">
+<collision name="collision">
+<geometry>
+<box>
+<size>0.6 0.6 0.6</size>
+</box>
+</geometry>
+</collision>
+<visual name="visual">
+<geometry>
+<box>
+<size>0.6 0.6 0.6</size>
+</box>
+</geometry>
+<material>
+<ambient>0.45 0.28 0.2 1</ambient>
+<diffuse>0.45 0.28 0.2 1</diffuse>
+</material>
+</visual>
+</link>
+</model>
+
+<model name="obstacle_rock_2">
+<static>true</static>
+<pose>-2 -1 0.25 0 0 0.4</pose>
+<link name="link">
+<collision name="collision">
+<geometry>
+<box>
+<size>0.5 0.5 0.5</size>
+</box>
+</geometry>
+</collision>
+<visual name="visual">
+<geometry>
+<box>
+<size>0.5 0.5 0.5</size>
+</box>
+</geometry>
+<material>
+<ambient>0.45 0.28 0.2 1</ambient>
+<diffuse>0.45 0.28 0.2 1</diffuse>
+</material>
+</visual>
+</link>
+</model>
+
+</world>
 </sdf>

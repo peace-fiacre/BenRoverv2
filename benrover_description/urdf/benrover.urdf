@@ -140,7 +140,7 @@
 </link>
 <joint name="steer_front_left_joint" type="revolute">
 <!-- Roue avant en avant du pivot du rocker. -->
-<origin xyz="0.20 0 -0.06" rpy="0 0 0"/>
+<origin xyz="0.20 0 -0.12" rpy="0 0 0"/>
 <parent link="rocker_left"/>
 <child link="steer_front_left"/>
 <axis xyz="0 0 1"/>
@@ -311,7 +311,7 @@
 </inertial>
 </link>
 <joint name="steer_front_right_joint" type="revolute">
-<origin xyz="0.20 0 -0.06" rpy="0 0 0"/>
+<origin xyz="0.20 0 -0.12" rpy="0 0 0"/>
 <parent link="rocker_right"/>
 <child link="steer_front_right"/>
 <axis xyz="0 0 1"/>
@@ -541,6 +541,7 @@
 <odom_topic>odom</odom_topic>
 <frame_id>odom</frame_id>
 <child_frame_id>base_link</child_frame_id>
+<tf_topic>/tf</tf_topic>
 </plugin>
 </gazebo>
 </robot>
