@@ -1,20 +1,3 @@
-"""
-Launch file pour benrover_mapping.
-
-Lance slam_toolbox en mode 'online async' avec les paramètres définis
-dans config/mapper_params_online_async.yaml.
-
-Prérequis (dépendances du ticket) :
-- sensor_driver_node actif et publiant /scan (sensor_msgs/LaserScan)
-- odométrie disponible sur /odom + TF odom -> base_link
-  (fournie par gz-sim-diff-drive-system, cf. Ticket 1)
-- TF base_link -> lidar_link présente dans l'URDF
-
-Usage :
-    ros2 launch benrover_mapping mapping.launch.py
-    ros2 launch benrover_mapping mapping.launch.py use_sim_time:=true
-"""
-
 import os
 
 from ament_index_python.packages import get_package_share_directory

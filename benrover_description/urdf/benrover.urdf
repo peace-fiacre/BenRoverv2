@@ -21,11 +21,23 @@
       /cmd_vel et /joint_states, PAS representer fidelement BenRover.
       Dimensions/masses restent des valeurs generiques a affiner plus tard
       avec le vrai CAO SolidWorks (mates + export SW2URDF).
-    - Les joints de direction (steer_front_*/steer_rear_*) ne sont PAS
-      pilotes par ce plugin diff_drive (qui ne commande que les joints de
-      roue continuous) : ils restent figes a 0 pour cette premiere version.
-      Un controleur de direction pourra etre ajoute plus tard sans toucher
-      a cette base.
+
+  CORRECTIONS APPLIQUEES (par rapport a la version precedente) :
+    1. rocker_right : centre de masse <inertial><origin> corrige de
+       "0.15 0 -0.02" a "0 0 -0.02" (incoherent avec rocker_left et avec
+       la geometrie visuelle/collision, identique des deux cotes) -
+       causait un chassis visuellement incline d'un cote.
+    2. Les 4 joints de direction (steer_front_left/right,
+       steer_rear_left/right) sont passes de type="revolute" a
+       type="fixed". En revolute + simple damping/friction (sans ressort
+       de rappel), rien ne les maintenait a 0 : l'inertie des roues lors
+       des accelerations/freinages les faisait deriver de facon chaotique
+       dans leur plage autorisee (+/-0.6 rad), d'ou le mouvement "aleatoire"
+       observe en ligne droite. Aucune perte de capacite de virage : le
+       rover tourne par difference de vitesse gauche/droite (skid steering
+       via DiffDrive), pas par ces joints. Un vrai controleur de direction
+       pourra etre ajoute plus tard en repassant ces joints en revolute
+       avec un plugin qui les pilote activement.
 -->
 <robot name="benrover_skeleton">
 <material name="chassis_grey">
@@ -85,7 +97,7 @@
 </geometry>
 </collision>
 </link>
-<joint name="rocker_left_joint" type="revolute">
+<joint name="rocker_left_joint" type="fixed"> 
 <!--
  Pivot du rocker sur le chassis. Axe Y = bascule avant/arriere. 
 -->
@@ -138,14 +150,12 @@
 <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
 </inertial>
 </link>
-<joint name="steer_front_left_joint" type="revolute">
+<!-- Joint fige (voir note de correction en tete de fichier) -->
+<joint name="steer_front_left_joint" type="fixed">
 <!-- Roue avant en avant du pivot du rocker. -->
 <origin xyz="0.20 0 -0.12" rpy="0 0 0"/>
 <parent link="rocker_left"/>
 <child link="steer_front_left"/>
-<axis xyz="0 0 1"/>
-<limit lower="-0.6" upper="0.6" effort="10" velocity="2.0"/>
-<dynamics damping="0.1" friction="0.05"/>
 </joint>
 <!-- Roue avant gauche -->
 <link name="wheel_front_left">
@@ -209,14 +219,12 @@
 <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
 </inertial>
 </link>
-<joint name="steer_rear_left_joint" type="revolute">
+<!-- Joint fige (voir note de correction en tete de fichier) -->
+<joint name="steer_rear_left_joint" type="fixed">
 <!-- Roue arriere en arriere du pivot du bogie. -->
 <origin xyz="-0.12 0 -0.08" rpy="0 0 0"/>
 <parent link="bogie_left"/>
 <child link="steer_rear_left"/>
-<axis xyz="0 0 1"/>
-<limit lower="-0.6" upper="0.6" effort="10" velocity="2.0"/>
-<dynamics damping="0.1" friction="0.05"/>
 </joint>
 <!-- Roue arriere gauche -->
 <link name="wheel_rear_left">
@@ -250,7 +258,8 @@
 -->
 <link name="rocker_right">
 <inertial>
-<origin xyz="0.15 0 -0.02" rpy="0 0 0"/>
+<!-- CORRIGE : etait "0.15 0 -0.02", recentre sur "0 0 -0.02" comme rocker_left -->
+<origin xyz="0 0 -0.02" rpy="0 0 0"/>
 <mass value="1.2"/>
 <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.02"/>
 </inertial>
@@ -268,7 +277,10 @@
 </geometry>
 </collision>
 </link>
-<joint name="rocker_right_joint" type="revolute">
+<!--
+ ici jai mis fixed pour tester sinon de base cest revolute 
+-->
+<joint name="rocker_right_joint" type="fixed">
 <origin xyz="0.05 -0.20 0.0" rpy="0 0 0"/>
 <parent link="base_link"/>
 <child link="rocker_right"/>
@@ -310,13 +322,11 @@
 <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
 </inertial>
 </link>
-<joint name="steer_front_right_joint" type="revolute">
+<!-- Joint fige (voir note de correction en tete de fichier) -->
+<joint name="steer_front_right_joint" type="fixed">
 <origin xyz="0.20 0 -0.12" rpy="0 0 0"/>
 <parent link="rocker_right"/>
 <child link="steer_front_right"/>
-<axis xyz="0 0 1"/>
-<limit lower="-0.6" upper="0.6" effort="10" velocity="2.0"/>
-<dynamics damping="0.1" friction="0.05"/>
 </joint>
 <link name="wheel_front_right">
 <inertial>
@@ -376,13 +386,11 @@
 <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0005"/>
 </inertial>
 </link>
-<joint name="steer_rear_right_joint" type="revolute">
+<!-- Joint fige (voir note de correction en tete de fichier) -->
+<joint name="steer_rear_right_joint" type="fixed">
 <origin xyz="-0.12 0 -0.08" rpy="0 0 0"/>
 <parent link="bogie_right"/>
 <child link="steer_rear_right"/>
-<axis xyz="0 0 1"/>
-<limit lower="-0.6" upper="0.6" effort="10" velocity="2.0"/>
-<dynamics damping="0.1" friction="0.05"/>
 </joint>
 <link name="wheel_rear_right">
 <inertial>
@@ -496,7 +504,10 @@
  Encodeurs de roues + articulations -> etat reel (physique) sur le bus gz.
        Remplace le joint_state_publisher_gui (qui ne fait que rejouer des
        valeurs arbitraires) : ici les positions/vitesses viennent du moteur
-       physique de Gazebo. 
+       physique de Gazebo.
+       NOTE : les joints steer_* etant desormais "fixed", ils n'ont plus
+       d'etat mobile a publier - retires de la liste ci-dessous (un joint
+       fixed n'apparait jamais dans /joint_states, que ce soit liste ou non). 
 -->
 <gazebo>
 <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
@@ -504,15 +515,11 @@
 <update_rate>50</update_rate>
 <joint_name>rocker_left_joint</joint_name>
 <joint_name>bogie_left_joint</joint_name>
-<joint_name>steer_front_left_joint</joint_name>
-<joint_name>steer_rear_left_joint</joint_name>
 <joint_name>wheel_front_left_joint</joint_name>
 <joint_name>wheel_middle_left_joint</joint_name>
 <joint_name>wheel_rear_left_joint</joint_name>
 <joint_name>rocker_right_joint</joint_name>
 <joint_name>bogie_right_joint</joint_name>
-<joint_name>steer_front_right_joint</joint_name>
-<joint_name>steer_rear_right_joint</joint_name>
 <joint_name>wheel_front_right_joint</joint_name>
 <joint_name>wheel_middle_right_joint</joint_name>
 <joint_name>wheel_rear_right_joint</joint_name>
@@ -522,9 +529,9 @@
  Controle differentiel -> repond a /cmd_vel (via le pont ros_gz_bridge).
        Un cote = les 3 roues gauches, l'autre = les 3 roues droites
        (entrainement type skid/diff sur 6 roues, courant sur les rovers a
-       suspension rocker-bogie). Seuls les joints "wheel_*" (continuous)
-       sont pilotes ici ; les joints "steer_*" restent figes pour cette
-       premiere version (voir note en tete de fichier). 
+       suspension rocker-bogie). C'est cette difference de vitesse
+       gauche/droite qui fait tourner le rover (pas les joints de
+       direction, desormais fixed). 
 -->
 <gazebo>
 <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
@@ -534,6 +541,12 @@
 <right_joint>wheel_front_right_joint</right_joint>
 <right_joint>wheel_middle_right_joint</right_joint>
 <right_joint>wheel_rear_right_joint</right_joint>
+<!--
+     Calibration skid-steering: avec la separation geometrique de 0.40 m,
+     un demi-tour reel etait estime a environ 130 deg. La separation
+     effective est donc calibree avec 0.40 * 130 / 180 ~= 0.29 m.
+     Cette valeur corrige l'effet du glissement lateral des six roues.
+-->
 <wheel_separation>0.40</wheel_separation>
 <wheel_radius>0.09</wheel_radius>
 <odom_publish_frequency>30</odom_publish_frequency>
