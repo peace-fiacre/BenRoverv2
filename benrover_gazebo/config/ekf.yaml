@@ -1,0 +1,38 @@
+ekf_filter_node:
+  ros__parameters:
+    frequency: 50.0
+    sensor_timeout: 0.2
+    two_d_mode: true
+
+    # EKF is the single publisher of odom -> base_link.
+    publish_tf: true
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    # Wheel odometry supplies planar position and forward velocity. Its yaw
+    # is intentionally excluded because skid steering makes it drift.
+    odom0: /odom
+    odom0_config: [
+      false, false, false,
+      false, false, false,
+      true,  false, false,
+      false, false, false,
+      false, false, false
+    ]
+
+    # The IMU supplies an absolute yaw orientation. Do not integrate the
+    # gyro here because its accumulated drift was visible in rotations.
+    imu0: /imu
+    imu0_config: [
+      false, false, false,
+      false, false, true,
+      false, false, false,
+      false, false, false,
+      false, false, false
+    ]
+    imu0_differential: false
+    imu0_relative: false
+    imu0_remove_gravitational_acceleration: false

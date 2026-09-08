@@ -90,6 +90,11 @@ class SensorAcquisitionNode(Node):
     def _on_imu_raw(self, msg: Imu):
         self._mark_received('imu')
         msg.header.frame_id = IMU_LINK_FRAME_ID
+
+        # Gazebo leaves IMU covariances at zero (unknown). Provide a small
+        # variance so robot_localization can weight the fused measurements.
+        msg.orientation_covariance[8] = 0.01
+        msg.angular_velocity_covariance[8] = 0.01
         self._imu_pub.publish(msg)
 
     def _on_joint_states(self, msg: JointState):

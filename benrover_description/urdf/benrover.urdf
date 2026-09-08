@@ -184,6 +184,13 @@
 <axis xyz="0 1 0"/>
 <dynamics damping="0.05" friction="0.02"/>
 </joint>
+<gazebo reference="wheel_front_left">
+<mu1>1.5</mu1>
+<mu2>1.5</mu2>
+<kp>100000.0</kp>
+<kd>1000.0</kd>
+<minDepth>0.001</minDepth>
+</gazebo>
 <!-- Roue centrale gauche (pas de direction) -->
 <link name="wheel_middle_left">
 <inertial>
@@ -212,6 +219,13 @@
 <axis xyz="0 1 0"/>
 <dynamics damping="0.05" friction="0.02"/>
 </joint>
+<gazebo reference="wheel_middle_left">
+<mu1>1.5</mu1>
+<mu2>1.5</mu2>
+<kp>100000.0</kp>
+<kd>1000.0</kd>
+<minDepth>0.001</minDepth>
+</gazebo>
 <!-- Direction arriere gauche -->
 <link name="steer_rear_left">
 <inertial>
@@ -253,6 +267,13 @@
 <axis xyz="0 1 0"/>
 <dynamics damping="0.05" friction="0.02"/>
 </joint>
+<gazebo reference="wheel_rear_left">
+<mu1>1.5</mu1>
+<mu2>1.5</mu2>
+<kp>100000.0</kp>
+<kd>1000.0</kd>
+<minDepth>0.001</minDepth>
+</gazebo>
 <!--
  ===================== COTE DROIT (miroir) ===================== 
 -->
@@ -354,6 +375,13 @@
 <axis xyz="0 1 0"/>
 <dynamics damping="0.05" friction="0.02"/>
 </joint>
+<gazebo reference="wheel_front_right">
+<mu1>1.5</mu1>
+<mu2>1.5</mu2>
+<kp>100000.0</kp>
+<kd>1000.0</kd>
+<minDepth>0.001</minDepth>
+</gazebo>
 <link name="wheel_middle_right">
 <inertial>
 <mass value="0.6"/>
@@ -380,6 +408,13 @@
 <axis xyz="0 1 0"/>
 <dynamics damping="0.05" friction="0.02"/>
 </joint>
+<gazebo reference="wheel_middle_right">
+<mu1>1.5</mu1>
+<mu2>1.5</mu2>
+<kp>100000.0</kp>
+<kd>1000.0</kd>
+<minDepth>0.001</minDepth>
+</gazebo>
 <link name="steer_rear_right">
 <inertial>
 <mass value="0.1"/>
@@ -418,6 +453,13 @@
 <axis xyz="0 1 0"/>
 <dynamics damping="0.05" friction="0.02"/>
 </joint>
+<gazebo reference="wheel_rear_right">
+<mu1>1.5</mu1>
+<mu2>1.5</mu2>
+<kp>100000.0</kp>
+<kd>1000.0</kd>
+<minDepth>0.001</minDepth>
+</gazebo>
 <!--
  ===================== CAPTEURS =====================
        Positions placeholder : a ajuster une fois les vraies cotes connues.
@@ -525,14 +567,6 @@
 <joint_name>wheel_rear_right_joint</joint_name>
 </plugin>
 </gazebo>
-<!--
- Controle differentiel -> repond a /cmd_vel (via le pont ros_gz_bridge).
-       Un cote = les 3 roues gauches, l'autre = les 3 roues droites
-       (entrainement type skid/diff sur 6 roues, courant sur les rovers a
-       suspension rocker-bogie). C'est cette difference de vitesse
-       gauche/droite qui fait tourner le rover (pas les joints de
-       direction, desormais fixed). 
--->
 <gazebo>
 <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
 <left_joint>wheel_front_left_joint</left_joint>
@@ -541,12 +575,6 @@
 <right_joint>wheel_front_right_joint</right_joint>
 <right_joint>wheel_middle_right_joint</right_joint>
 <right_joint>wheel_rear_right_joint</right_joint>
-<!--
-     Calibration skid-steering: avec la separation geometrique de 0.40 m,
-     un demi-tour reel etait estime a environ 130 deg. La separation
-     effective est donc calibree avec 0.40 * 130 / 180 ~= 0.29 m.
-     Cette valeur corrige l'effet du glissement lateral des six roues.
--->
 <wheel_separation>0.40</wheel_separation>
 <wheel_radius>0.09</wheel_radius>
 <odom_publish_frequency>30</odom_publish_frequency>
@@ -554,7 +582,7 @@
 <odom_topic>odom</odom_topic>
 <frame_id>odom</frame_id>
 <child_frame_id>base_link</child_frame_id>
-<tf_topic>/tf</tf_topic>
+<tf_topic>/tf_raw_gazebo</tf_topic>
 </plugin>
 </gazebo>
 </robot>

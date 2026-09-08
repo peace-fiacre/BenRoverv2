@@ -2,9 +2,11 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
+from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
@@ -14,7 +16,15 @@ def generate_launch_description():
 
     urdf_path = os.path.join(pkg_description, 'urdf', 'benrover.urdf')
     bridge_config_path = os.path.join(pkg_gazebo, 'config', 'ros_gz_bridge.yaml')
+    ekf_config_path = os.path.join(pkg_gazebo, 'config', 'ekf.yaml')
     world_path = os.path.join(pkg_gazebo, 'worlds', 'benrover_world.sdf')
+
+    use_sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='true',
+        description='Utiliser l\'horloge de simulation Gazebo (/clock)',
+    )
+    use_sim_time = LaunchConfiguration('use_sim_time')
 
     with open(urdf_path, 'r') as urdf_file:
         robot_description_content = urdf_file.read()
@@ -41,7 +51,10 @@ def generate_launch_description():
         executable='robot_state_publisher',
         name='robot_state_publisher',
         output='screen',
-        parameters=[{'robot_description': robot_description_content}],
+        parameters=[
+            {'robot_description': robot_description_content},
+            {'use_sim_time': use_sim_time},
+        ],
     )
 
     # Spawn du robot dans Gazebo, en lisant directement le topic
@@ -56,6 +69,7 @@ def generate_launch_description():
             '-z', '0.3',
         ],
         output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
     )
 
     # Pont ROS 2 <-> Gazebo Transport, configure via le fichier YAML
@@ -65,12 +79,37 @@ def generate_launch_description():
         executable='parameter_bridge',
         name='ros_gz_bridge',
         output='screen',
-        parameters=[{'config_file': bridge_config_path}],
+        parameters=[
+            {'config_file': bridge_config_path},
+            {'use_sim_time': use_sim_time},
+        ],
+    )
+
+    sensor_driver_node = Node(
+        package='benrover_sensors',
+        executable='sensor_driver_node',
+        name='sensor_driver_node',
+        output='screen',
+        parameters=[{'use_sim_time': use_sim_time}],
+    )
+
+    ekf_node = Node(
+        package='robot_localization',
+        executable='ekf_node',
+        name='ekf_filter_node',
+        output='screen',
+        parameters=[
+            ekf_config_path,
+            {'use_sim_time': use_sim_time},
+        ],
     )
 
     return LaunchDescription([
+        use_sim_time_arg,
         gazebo,
         robot_state_publisher_node,
         spawn_node,
         bridge_node,
+        sensor_driver_node,
+        ekf_node,
     ])
