@@ -1,136 +1,256 @@
-# BenRover — Jumeau numérique (ROS 2 / Gazebo)
+# BenRover - Simulation et cartographie
 
-Jumeau numérique du rover martien BenRover, développé pour permettre à
-l'équipe software de développer et tester ses nodes ROS 2 (perception,
-planification, contrôle) en simulation, sans dépendre de la disponibilité
-du rover physique.
+Ce workspace ROS 2 permet de simuler le rover BenRover, de tester ses
+capteurs et de construire une carte de son environnement.
 
-## Structure du projet
+## Principe de fonctionnement
 
+La simulation fournit les commandes, l'odométrie, l'IMU et les scans du
+LIDAR. Les données sont utilisées de la façon suivante :
+
+```text
+Simulation
+   |
+   +--> odométrie
+   +--> IMU ------------+
+   +--> scan LIDAR      |
+                        v
+                     EKF
+                        |
+                        +--> odom -> base_link
+
+scan + TF + odométrie
+          |
+          v
+     SLAM Toolbox
+          |
+          +--> /map
+          +--> map -> odom
 ```
-BenRover/
-├── src/
-│   ├── benrover_description/   # Géométrie du robot (URDF, meshes)
-│   │   ├── urdf/
-│   │   ├── meshes/
-│   │   ├── config/
-│   │   └── launch/
-│   └── benrover_gazebo/        # Simulation (monde, spawn, bridge)
-│       ├── worlds/
-│       ├── config/
-│       └── launch/
-└── README.md                   # Ce fichier
+
+L'EKF utilise la vitesse d'avancement issue de l'odométrie et l'orientation
+de l'IMU. Cette combinaison évite de dépendre directement du yaw estimé par
+les roues pendant les rotations.
+
+SLAM Toolbox associe les scans LIDAR à la chaîne TF :
+
+```text
+map -> odom -> base_link -> lidar_link
 ```
+
+RViz affiche ensuite la carte, le robot et les scans reçus.
 
 ## État actuel
 
-### Fait et validé
+- Simulation du rover avec commande de vitesse sur `/cmd_vel`.
+- Publication de l'odométrie sur `/odom`.
+- Fusion de l'odométrie et de l'IMU sur `/odometry/filtered`.
+- Publication des scans corrigés sur `/scan`.
+- Cartographie avec SLAM Toolbox.
+- Monde de test contenant un parcours de type labyrinthe.
+- Sauvegarde et rechargement d'une carte validés.
+- Test automatisé vérifiant la publication correcte de `/map`.
 
-- Squelette du workspace ROS 2 et des deux packages (`benrover_description`,
-  `benrover_gazebo`), build propre avec `colcon build`.
-- URDF fonctionnel d'un rover 6 roues à suspension rocker-bogie, avec
-  direction avant et arrière (`steer_front_*` / `steer_rear_*`) et roue
-  centrale sans direction — architecture cohérente avec le BOM SolidWorks
-  reçu de l'équipe mécanique.
-  - **Géométrie actuelle : primitives (box/cylinder), pas les vraies
-    meshes STL.** But de cette version : valider la chaîne technique, pas
-    représenter fidèlement BenRover visuellement.
-- Chaîne TF (`robot_state_publisher` + joints) validée dans RViz sur une
-  version antérieure du fichier (URDF legacy issu d'un export SolidWorks) :
-  arbre complet, sans frame orpheline.
-- Simulation sous **Gazebo (`gz-sim7`)** :
-  - Le rover se lance dans Gazebo via un unique launch file
-    (`spawn_benrover.launch.py`).
-  - Contrôle différentiel 6 roues via le plugin `gz-sim-diff-drive-system`.
-  - Pont `ros_gz_bridge` configuré (`cmd_vel`, `odom`, `tf`, `joint_states`,
-    `scan`, `imu`, `clock`).
-  - Le rover répond à une commande de vitesse sur `/cmd_vel` (testé et
-    confirmé — penser à démarrer/`play` la simulation dans Gazebo, sinon
-    aucune commande n'a d'effet).
-
-### À vérifier / à faire
-
-- [ ] Confirmer que `/joint_states` publie bien **en continu** (pas
-      juste une fois) pendant que la simulation tourne.
-- [ ] Confirmer l'absence de frame orpheline dans le TF tree **sur la
-      version actuelle** du fichier (validé précédemment sur une version
-      antérieure, à reconfirmer sur le fichier en place aujourd'hui) via
-      `ros2 run tf2_tools view_frames`.
-- [ ] Récupérer les vraies données CAO définitives : définir les
-      **mates/joints dans SolidWorks** à partir du fichier STEP reçu de
-      l'équipe mécanique, puis exporter via le plugin SW2URDF (meshes STL
-      + URDF avec les vraies dimensions).
-- [ ] Remplacer les primitives par les vraies meshes STL une fois
-      l'export SolidWorks obtenu.
-- [ ] Piloter les joints de direction avant/arrière (`steer_front_*` /
-      `steer_rear_*`) — pour l'instant ils restent figés, seul le
-      déplacement en ligne droite/rotation (skid-style) est fonctionnel.
-- [ ] La barre différentielle mécanique reliant les deux rockers n'est pas
-      modélisée (limitation connue d'URDF, qui ne supporte pas les
-      boucles fermées) — les deux côtés restent cinématiquement
-      indépendants pour l'instant.
-- [ ] Choix d'architecture de contrôle à trancher pour la suite : rester
-      sur le plugin `diff_drive` direct (actuel, plus simple) ou migrer
-      vers `ros2_control` (plus standard ROS 2, envisagé initialement).
-- [ ] Capturer une courte démo (vidéo ou live) à présenter à l'équipe.
-
-
-## Comment lancer et tester
-
-### 1. Build
+## Préparer le workspace
 
 ```bash
 cd ~/Projects/BenRover
+source /opt/ros/humble/setup.bash
 colcon build
 source install/setup.bash
 ```
 
-### 2. Lancer la simulation complète
+## Lancer la simulation
 
 ```bash
 ros2 launch benrover_gazebo spawn_benrover.launch.py
 ```
 
-Ce launch file démarre Gazebo (monde vide), spawn le rover, lance
-`robot_state_publisher` et le pont `ros_gz_bridge`.
+La simulation démarre le robot, ses capteurs, le pont de communication et
+l'EKF. Si le monde est en pause, appuyer sur le bouton de lecture avant de
+tester les commandes.
 
-**Important** : la simulation démarre parfois **en pause** dans Gazebo —
-vérifier que le bouton play est bien activé (sinon aucune commande
-n'aura d'effet, même si tout est correctement configuré).
-
-### 3. Vérifier les topics disponibles
+## Vérifier les topics
 
 ```bash
 ros2 topic list
 ```
 
-Doivent apparaître : `/cmd_vel`, `/odom`, `/tf`, `/joint_states`,
-`/scan`, `/imu`, `/clock`.
+Topics principaux :
 
-### 4. Tester une commande de vitesse
-
-```bash
-ros2 topic pub /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.3}}" --once
+```text
+/cmd_vel
+/odom
+/odometry/filtered
+/imu
+/scan
+/tf
+/tf_static
+/clock
 ```
 
-Les roues doivent tourner visuellement dans Gazebo.
-
-### 5. Vérifier la publication continue de `/joint_states`
+Vérifier les fréquences :
 
 ```bash
-ros2 topic echo /joint_states
+ros2 topic hz /scan
+ros2 topic hz /imu
+ros2 topic hz /odometry/filtered
+ros2 topic hz /tf
 ```
 
-### 6. Vérifier le TF tree (absence de frame orpheline)
+## Tester les mouvements
 
-Avec la simulation en cours, dans un autre terminal :
+Avancer :
+
+```bash
+ros2 topic pub --rate 20 /cmd_vel \
+  geometry_msgs/msg/Twist \
+  "{linear: {x: 0.2}, angular: {z: 0.0}}"
+```
+
+Tourner :
+
+```bash
+ros2 topic pub --rate 20 /cmd_vel \
+  geometry_msgs/msg/Twist \
+  "{linear: {x: 0.0}, angular: {z: 0.3}}"
+```
+
+Arrêter le robot :
+
+```bash
+ros2 topic pub --once /cmd_vel \
+  geometry_msgs/msg/Twist \
+  "{linear: {x: 0.0}, angular: {z: 0.0}}"
+```
+
+## Vérifier l'odométrie et le TF
+
+```bash
+ros2 topic echo /odometry/filtered --once
+ros2 run tf2_ros tf2_echo odom base_link
+```
+
+Générer l'arbre TF :
 
 ```bash
 ros2 run tf2_tools view_frames
 xdg-open frames.pdf
 ```
 
-Ou visuellement dans RViz (`rviz2`) : ajouter les displays `RobotModel`
-(Description Topic = `/robot_description`) et `TF`, régler
-**Fixed Frame** sur `base_link`.
+Pendant une rotation, comparer l'orientation de Gazebo avec celle de
+`/odometry/filtered` et de `odom -> base_link`.
 
+## Lancer la cartographie
+
+```bash
+ros2 launch benrover_mapping mapping.launch.py
+```
+
+Dans RViz, utiliser :
+
+```text
+Fixed Frame : map
+Map         : /map
+LaserScan   : /scan
+```
+
+Pendant le parcours, les scans doivent rester alignés avec les murs et la
+position du robot doit rester cohérente avec la carte, y compris pendant les
+rotations.
+
+## Tester automatiquement la cartographie
+
+```bash
+cd ~/Projects/BenRover
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+ROS_LOG_DIR=/tmp/benrover-ros-log \
+colcon test \
+  --packages-select benrover_mapping \
+  --python-testing pytest \
+  --event-handlers console_direct+
+```
+
+Le test démarre SLAM Toolbox avec des TF et des scans artificiels, puis
+vérifie que `/map` est publié avec un format valide.
+
+Résultat attendu :
+
+```text
+3 passed, 1 skipped
+```
+
+## Sauvegarder une carte
+
+Créer le dossier de stockage :
+
+```bash
+mkdir -p ~/Projects/BenRover/src/benrover_mapping/maps
+```
+
+Se placer dans ce dossier :
+
+```bash
+cd ~/Projects/BenRover/src/benrover_mapping/maps
+```
+
+Sauvegarder la carte :
+
+```bash
+ros2 run nav2_map_server map_saver_cli -f ./benrover_map
+```
+
+Les fichiers suivants sont créés :
+
+```text
+benrover_map.yaml
+benrover_map.pgm
+```
+
+## Recharger une carte
+
+Lancer le serveur de carte :
+
+```bash
+ros2 run nav2_map_server map_server \
+  --ros-args \
+  -p yaml_filename:=$HOME/Projects/BenRover/src/benrover_mapping/maps/benrover_map.yaml
+```
+
+Dans un autre terminal, configurer puis activer le node lifecycle :
+
+```bash
+ros2 lifecycle set /map_server configure
+ros2 lifecycle set /map_server activate
+```
+
+Vérifier la publication :
+
+```bash
+ros2 topic echo /map --once
+```
+
+## Ouvrir RViz avec la carte sauvegardée
+
+Sans horloge de simulation :
+
+```bash
+ros2 run rviz2 rviz2 \
+  -d "$HOME/Projects/BenRover/src/benrover_mapping/config/mapping.rviz" \
+  --ros-args -p use_sim_time:=false
+```
+
+Avec la simulation active et `/clock` disponible :
+
+```bash
+ros2 run rviz2 rviz2 \
+  -d "$HOME/Projects/BenRover/src/benrover_mapping/config/mapping.rviz" \
+  --ros-args -p use_sim_time:=true
+```
+
+## Suite prévue
+
+La prochaine étape est de lancer le robot sur une carte déjà sauvegardée
+avec un système de localisation, puis d'ajouter la navigation autonome.
