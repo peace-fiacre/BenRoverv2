@@ -1,0 +1,50 @@
+---
+title: Tests et validation
+description: Exécuter les tests unitaires et valider la chaîne ROS 2.
+---
+
+## Tests des packages
+
+```bash
+cd ~/Projects/BenRover
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+colcon test \
+  --packages-select \
+  benrover_sensors \
+  benrover_mapping \
+  state_manager_node \
+  --python-testing pytest \
+  --event-handlers console_direct+
+```
+
+L'option `--python-testing pytest` est importante : elle force la découverte
+des tests Python et des tests `launch_testing`.
+
+## Test ciblé du mapping
+
+```bash
+ROS_LOG_DIR=/tmp/benrover-ros-log \
+python3 -m pytest -q -s \
+  src/benrover_mapping/test/test_map_published.py
+```
+
+## Test ciblé de la supervision
+
+```bash
+python3 -m pytest -q \
+  src/state_manager_node/test/test_state_manager_node.py
+```
+
+## Contrôles manuels
+
+```bash
+ros2 topic info /scan -v
+ros2 topic info /imu -v
+ros2 topic info /map -v
+ros2 topic info /reactive/status -v
+```
+
+La validation complète doit confirmer que le rover se déplace, que les scans
+restent alignés dans RViz et que le statut reste `OK`.

@@ -1,0 +1,77 @@
+---
+title: Démarrage
+description: Construire le workspace et lancer le rover.
+---
+
+## Préparer le workspace
+
+```bash
+cd ~/Projects/BenRover
+source /opt/ros/humble/setup.bash
+colcon build
+source install/setup.bash
+```
+
+## Lancer la simulation
+
+```bash
+ros2 launch benrover_gazebo spawn_benrover.launch.py
+```
+
+Le lancement démarre le rover, ses capteurs, la communication avec ROS 2 et
+l'EKF. Si la simulation est en pause, lancer la lecture dans la fenêtre de
+simulation.
+
+## Vérifier les topics
+
+```bash
+ros2 topic list
+```
+
+Les topics principaux sont :
+
+```text
+/cmd_vel
+/odom
+/odometry/filtered
+/imu
+/scan
+/tf
+/tf_static
+/clock
+```
+
+Vérifier les fréquences :
+
+```bash
+ros2 topic hz /scan
+ros2 topic hz /imu
+ros2 topic hz /odometry/filtered
+ros2 topic hz /tf
+```
+
+## Tester le déplacement
+
+Avancer :
+
+```bash
+ros2 topic pub --rate 20 /cmd_vel \
+  geometry_msgs/msg/Twist \
+  "{linear: {x: 0.2}, angular: {z: 0.0}}"
+```
+
+Tourner :
+
+```bash
+ros2 topic pub --rate 20 /cmd_vel \
+  geometry_msgs/msg/Twist \
+  "{linear: {x: 0.0}, angular: {z: 0.3}}"
+```
+
+Arrêter :
+
+```bash
+ros2 topic pub --once /cmd_vel \
+  geometry_msgs/msg/Twist \
+  "{linear: {x: 0.0}, angular: {z: 0.0}}"
+```

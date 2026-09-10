@@ -1,0 +1,44 @@
+---
+title: BenRover
+description: Simulation, supervision et cartographie du rover BenRover.
+---
+
+BenRover est un environnement ROS 2 permettant de tester le déplacement, les
+capteurs, l'odométrie et la cartographie d'un rover dans un monde simulé.
+
+## Parcours recommandé
+
+1. Préparer et construire le workspace.
+2. Démarrer la simulation.
+3. Vérifier les topics et le TF.
+4. Lancer la cartographie.
+5. Tester la supervision.
+6. Sauvegarder la carte.
+
+<CardGroup cols={2}>
+  <Card title="Démarrer" icon="rocket" href="/guides/getting-started">
+    Lancer la simulation et vérifier que les topics principaux fonctionnent.
+  </Card>
+  <Card title="Comprendre l'architecture" icon="diagram-project" href="/guides/architecture">
+    Comprendre le flux entre simulation, capteurs, EKF et SLAM Toolbox.
+  </Card>
+  <Card title="Cartographier" icon="map" href="/guides/mapping">
+    Construire, sauvegarder et recharger une carte.
+  </Card>
+  <Card title="Superviser" icon="shield-check" href="/guides/supervision">
+    Lire l'état consolidé publié sur `/reactive/status`.
+  </Card>
+</CardGroup>
+
+## Commandes essentielles
+
+```bash
+cd ~/Projects/BenRover
+source /opt/ros/humble/setup.bash
+colcon build
+source install/setup.bash
+```
+
+```bash
+ros2 launch benrover_gazebo spawn_benrover.launch.py
+```

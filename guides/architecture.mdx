@@ -1,0 +1,55 @@
+---
+title: Architecture
+description: Flux des données entre la simulation, les capteurs, l'EKF et le SLAM.
+---
+
+## Flux général
+
+```text
+Simulation
+   |
+   +--> odométrie + IMU
+   +--> scan LIDAR
+          |
+          v
+        EKF -----> odom -> base_link
+          |
+          v
+   SLAM Toolbox -----> /map et map -> odom
+```
+
+Le node capteurs republie les données utiles sur les topics ROS 2 standards :
+
+```text
+scan brut  -> /scan
+IMU brute  -> /imu
+joints     -> /wheel_encoders
+```
+
+L'EKF utilise la vitesse d'avancement issue de l'odométrie et l'orientation de
+l'IMU. Cette configuration évite de faire confiance au yaw calculé uniquement
+à partir des roues pendant une rotation avec glissement.
+
+## Chaîne TF
+
+La chaîne attendue pour la cartographie est :
+
+```text
+map -> odom -> base_link -> lidar_link
+```
+
+Vérifier cette chaîne avec :
+
+```bash
+ros2 run tf2_ros tf2_echo odom base_link
+ros2 run tf2_tools view_frames
+```
+
+## Vérifier l'orientation
+
+```bash
+ros2 topic echo /odometry/filtered --once
+```
+
+Pendant une rotation, comparer l'orientation de l'EKF avec l'orientation du
+robot dans la simulation.

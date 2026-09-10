@@ -1,0 +1,63 @@
+---
+title: Supervision
+description: Lire l'état consolidé des capteurs et de la cartographie.
+---
+
+## Lancer le node
+
+Avec la simulation active :
+
+```bash
+source ~/Projects/BenRover/install/setup.bash
+ros2 launch state_manager_node state_manager.launch.py use_sim_time:=true
+```
+
+Sur un robot réel, sans horloge de simulation :
+
+```bash
+ros2 launch state_manager_node state_manager.launch.py use_sim_time:=false
+```
+
+## Lire le statut
+
+```bash
+ros2 topic echo /reactive/status
+```
+
+Le message contient trois diagnostics :
+
+```text
+sensor_driver_node
+mapping_node
+state_manager_node
+```
+
+Les niveaux sont :
+
+```text
+0 : OK
+1 : WARN
+2 : ERROR
+```
+
+Le node surveille la fraîcheur et le format minimal de :
+
+```text
+/scan
+/imu
+/wheel_encoders
+/map
+```
+
+Il informe l'architecture mais n'arrête pas le rover et ne publie aucune
+commande sur `/cmd_vel`.
+
+## Tester une panne
+
+Arrêter le node capteurs ou le node de cartographie avec `Ctrl+C`, puis lire :
+
+```bash
+ros2 topic echo /reactive/status --once
+```
+
+L'état du composant concerné doit passer à `ERROR` après expiration du timeout.

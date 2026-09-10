@@ -1,0 +1,34 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "BenRover",
+  "description": "Simulation, capteurs, localisation et cartographie du rover BenRover.",
+  "theme": "mint",
+  "colors": {
+    "primary": "#D97706",
+    "light": "#F59E0B",
+    "dark": "#92400E"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Démarrage",
+        "pages": [
+          "index",
+          "guides/getting-started"
+        ]
+      },
+      {
+        "group": "Fonctionnement",
+        "pages": [
+          "guides/architecture",
+          "guides/mapping",
+          "guides/supervision"
+        ]
+      },
+      {
+        "group": "Validation",
+        "pages": ["guides/testing"]
+      }
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+---
+title: Cartographie
+description: Construire, sauvegarder et recharger une carte.
+---
+
+## Lancer SLAM Toolbox
+
+Avec la simulation déjà active :
+
+```bash
+source ~/Projects/BenRover/install/setup.bash
+ros2 launch benrover_mapping mapping.launch.py
+```
+
+Dans RViz :
+
+```text
+Fixed Frame : map
+Map         : /map
+LaserScan   : /scan
+```
+
+Pendant le parcours, les scans doivent rester alignés avec les murs, y compris
+pendant les rotations.
+
+## Sauvegarder une carte
+
+```bash
+mkdir -p ~/Projects/BenRover/src/benrover_mapping/maps
+cd ~/Projects/BenRover/src/benrover_mapping/maps
+ros2 run nav2_map_server map_saver_cli -f ./benrover_map
+```
+
+Les fichiers créés sont :
+
+```text
+benrover_map.yaml
+benrover_map.pgm
+```
+
+## Recharger une carte
+
+```bash
+ros2 run nav2_map_server map_server \
+  --ros-args \
+  -p yaml_filename:=$HOME/Projects/BenRover/src/benrover_mapping/maps/benrover_map.yaml
+```
+
+Dans un autre terminal :
+
+```bash
+ros2 lifecycle set /map_server configure
+ros2 lifecycle set /map_server activate
+ros2 topic echo /map --once
+```
+
+## Ouvrir RViz avec la carte
+
+Sans horloge de simulation :
+
+```bash
+ros2 run rviz2 rviz2 \
+  -d "$HOME/Projects/BenRover/src/benrover_mapping/config/mapping.rviz" \
+  --ros-args -p use_sim_time:=false
+```
