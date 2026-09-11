@@ -16,8 +16,8 @@ setup(
     maintainer='peace-fiacre',
     maintainer_email='fiacreegoudjobi@gmail.com',
     description=(
-        "Node d'acquisition capteur BenRover (encodeurs filtres depuis "
-        "joint_states, surveillance de fraicheur scan/imu/joint_states)"
+        'Node d\'acquisition capteur BenRover (encodeurs filtres depuis '
+        'joint_states, surveillance de fraicheur scan/imu/joint_states)'
     ),
     license='TODO: License declaration',
     tests_require=['pytest'],

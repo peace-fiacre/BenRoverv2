@@ -28,10 +28,10 @@ import launch_ros.actions
 import launch_testing.actions
 import launch_testing.markers
 import pytest
-import rclpy
 from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import OccupancyGrid
+import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from tf2_ros import StaticTransformBroadcaster
@@ -136,7 +136,7 @@ class TestMapPublication(unittest.TestCase):
 
         self.assertTrue(
             len(self.received_maps) > 0,
-            "Aucun message reçu sur /map après {}s".format(timeout_sec),
+            'Aucun message reçu sur /map après {}s'.format(timeout_sec),
         )
 
         latest_map = self.received_maps[-1]

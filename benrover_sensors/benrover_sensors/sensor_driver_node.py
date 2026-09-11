@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import LaserScan, Imu, JointState
+from sensor_msgs.msg import Imu, JointState, LaserScan
 
 
 # Les 6 joints de roue du rover (voir benrover.urdf) : ce sont les seuls
@@ -117,8 +117,8 @@ class SensorAcquisitionNode(Node):
                 # signale (URDF incoherent avec ce node ?) mais on ne
                 # plante pas, on republie juste ce qu'on a pu trouver.
                 self.get_logger().warning(
-                    f"Joint de roue attendu introuvable dans "
-                    f"/joint_states : {name}"
+                    f'Joint de roue attendu introuvable dans '
+                    f'/joint_states : {name}'
                 )
                 continue
 
@@ -148,9 +148,9 @@ class SensorAcquisitionNode(Node):
                 if not self._already_reported_stale[sensor_key]:
                     elapsed_sec = elapsed.nanoseconds / 1e9
                     self.get_logger().error(
-                        f"Capteur '{sensor_key}' muet depuis "
-                        f"{elapsed_sec:.1f}s (seuil: "
-                        f"{self.stale_timeout_sec}s)"
+                        f'Capteur {sensor_key!r} muet depuis '
+                        f'{elapsed_sec:.1f}s (seuil: '
+                        f'{self.stale_timeout_sec}s)'
                     )
                     self._already_reported_stale[sensor_key] = True
                 # Sinon : deja signale, on ne repete pas le log a

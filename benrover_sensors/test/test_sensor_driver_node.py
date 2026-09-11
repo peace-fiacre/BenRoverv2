@@ -2,15 +2,14 @@ import time
 
 import pytest
 import rclpy
-from rclpy.node import Node
-from sensor_msgs.msg import JointState, LaserScan, Imu
-
 from benrover_sensors.sensor_driver_node import (
+    IMU_LINK_FRAME_ID,
+    LIDAR_LINK_FRAME_ID,
     SensorAcquisitionNode,
     WHEEL_JOINT_NAMES,
-    LIDAR_LINK_FRAME_ID,
-    IMU_LINK_FRAME_ID,
 )
+from rclpy.node import Node
+from sensor_msgs.msg import Imu, JointState, LaserScan
 
 # Tous les joints mobiles du rover, pas seulement les roues - pour
 # verifier que le node filtre bien et ne garde QUE les 6 attendus.
@@ -73,10 +72,10 @@ def test_wheel_encoders_filters_to_six_wheel_joints():
     _spin_for(node_under_test, 0.5)
     _spin_for(helper, 0.2)
 
-    assert len(received) >= 1, "Aucun message recu sur /wheel_encoders"
+    assert len(received) >= 1, 'Aucun message recu sur /wheel_encoders'
     last = received[-1]
     assert set(last.name) == set(WHEEL_JOINT_NAMES), (
-        f"Attendu exactement les 6 joints de roue, recu : {last.name}"
+        f'Attendu exactement les 6 joints de roue, recu : {last.name}'
     )
 
     node_under_test.destroy_node()
@@ -106,15 +105,15 @@ def test_scan_republished_with_corrected_frame_id():
     _spin_for(node_under_test, 0.5)
     _spin_for(helper, 0.2)
 
-    assert len(received) >= 1, "Aucun message recu sur /scan"
+    assert len(received) >= 1, 'Aucun message recu sur /scan'
     last = received[-1]
     assert last.header.frame_id == LIDAR_LINK_FRAME_ID, (
-        f"frame_id attendu '{LIDAR_LINK_FRAME_ID}', recu "
-        f"'{last.header.frame_id}'"
+        f'frame_id attendu {LIDAR_LINK_FRAME_ID!r}, recu '
+        f'{last.header.frame_id!r}'
     )
     assert list(last.ranges) == [1.0, 2.0, 3.0], (
-        "Les donnees du scan n'ont pas ete preservees pendant la "
-        "republication"
+        'Les donnees du scan n\'ont pas ete preservees pendant la '
+        'republication'
     )
 
     node_under_test.destroy_node()
@@ -140,15 +139,15 @@ def test_imu_republished_with_corrected_frame_id():
     _spin_for(node_under_test, 0.5)
     _spin_for(helper, 0.2)
 
-    assert len(received) >= 1, "Aucun message recu sur /imu"
+    assert len(received) >= 1, 'Aucun message recu sur /imu'
     last = received[-1]
     assert last.header.frame_id == IMU_LINK_FRAME_ID, (
-        f"frame_id attendu '{IMU_LINK_FRAME_ID}', recu "
-        f"'{last.header.frame_id}'"
+        f'frame_id attendu {IMU_LINK_FRAME_ID!r}, recu '
+        f'{last.header.frame_id!r}'
     )
     assert last.linear_acceleration.z == 9.8, (
-        "Les donnees IMU n'ont pas ete preservees pendant la "
-        "republication"
+        'Les donnees IMU n\'ont pas ete preservees pendant la '
+        'republication'
     )
 
     node_under_test.destroy_node()
