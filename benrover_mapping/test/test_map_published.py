@@ -27,10 +27,10 @@ import launch
 import launch_ros.actions
 import launch_testing.actions
 import launch_testing.markers
-import pytest
 from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import OccupancyGrid
+import pytest
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan

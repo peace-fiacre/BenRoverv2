@@ -1,13 +1,13 @@
 import time
 
-import pytest
-import rclpy
 from benrover_sensors.sensor_driver_node import (
     IMU_LINK_FRAME_ID,
     LIDAR_LINK_FRAME_ID,
     SensorAcquisitionNode,
     WHEEL_JOINT_NAMES,
 )
+import pytest
+import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Imu, JointState, LaserScan
 
@@ -112,7 +112,7 @@ def test_scan_republished_with_corrected_frame_id():
         f'{last.header.frame_id!r}'
     )
     assert list(last.ranges) == [1.0, 2.0, 3.0], (
-        'Les donnees du scan n\'ont pas ete preservees pendant la '
+        "Les donnees du scan n'ont pas ete preservees pendant la "
         'republication'
     )
 
@@ -146,7 +146,7 @@ def test_imu_republished_with_corrected_frame_id():
         f'{last.header.frame_id!r}'
     )
     assert last.linear_acceleration.z == 9.8, (
-        'Les donnees IMU n\'ont pas ete preservees pendant la '
+        "Les donnees IMU n'ont pas ete preservees pendant la "
         'republication'
     )
 
