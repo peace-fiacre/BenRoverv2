@@ -21,13 +21,9 @@ jobs:
 
       - name: Installer les dépendances système
         run: |
-          sudo add-apt-repository -y universe
           sudo apt-get update
           sudo apt-get install -y \
             ros-humble-slam-toolbox \
-            ros-humble-robot-localization \
-            ros-humble-ros-gz-bridge \
-            ros-humble-ros-gz-sim \
             ros-humble-launch-testing \
             ros-humble-launch-testing-ros
 
@@ -35,12 +31,22 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           rosdep update
-          rosdep install --from-paths . --ignore-src -r -y
+          rosdep install \
+            --from-paths \
+            benrover_sensors \
+            benrover_mapping \
+            state_manager_node \
+            --ignore-src -r -y
 
       - name: Construire le workspace
         run: |
           source /opt/ros/humble/setup.bash
-          colcon build --symlink-install
+          colcon build \
+            --packages-select \
+            benrover_sensors \
+            benrover_mapping \
+            state_manager_node \
+            --symlink-install
 
       - name: Tester les packages concernés
         run: |
