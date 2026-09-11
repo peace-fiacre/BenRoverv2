@@ -1,0 +1,69 @@
+---
+title: Validation d'intégration
+description: Valider le fonctionnement conjoint de la simulation, du mapping et de la supervision.
+---
+
+## Lancer la chaîne complète
+
+```bash
+cd ~/Projects/BenRover
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+ros2 launch state_manager_node integration.launch.py
+```
+
+Le launch démarre en parallèle :
+
+```text
+simulation
+sensor_driver_node
+ekf_node
+mapping_node
+RViz
+state_manager_node
+```
+
+Les capteurs et l'EKF sont déjà démarrés par le launch de la simulation. Ils
+ne sont donc pas démarrés une seconde fois.
+
+## Vérifier les topics
+
+```bash
+ros2 topic info /scan -v
+ros2 topic info /imu -v
+ros2 topic info /map -v
+ros2 topic info /reactive/status -v
+```
+
+Le statut doit être publié par un seul `state_manager_node`.
+
+## Démonstration
+
+Déplacer le rover avec :
+
+```bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+
+Vérifier dans la simulation et RViz que le rover se déplace, que les scans
+restent alignés avec les murs et que la carte se construit correctement.
+
+Lire le statut global :
+
+```bash
+ros2 topic echo /reactive/status
+```
+
+## Provoquer une panne
+
+Arrêter uniquement `sensor_driver_node` avec `Ctrl+C` dans son terminal. Après
+expiration du timeout, le statut doit indiquer :
+
+```text
+sensor_driver_node : ERROR
+state_manager_node : ERROR
+```
+
+Le rover n'est pas arrêté automatiquement : le node de supervision informe
+l'architecture, tandis que le fail-safe global relève d'un futur node dédié.

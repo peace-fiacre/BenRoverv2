@@ -75,3 +75,18 @@ ros2 topic pub --once /cmd_vel \
   geometry_msgs/msg/Twist \
   "{linear: {x: 0.0}, angular: {z: 0.0}}"
 ```
+
+## Lancer toute la chaîne
+
+Pour démarrer la simulation, les capteurs, l'EKF, le mapping, RViz et la
+supervision en une seule commande :
+
+```bash
+ros2 launch state_manager_node integration.launch.py
+```
+
+Sans RViz :
+
+```bash
+ros2 launch state_manager_node integration.launch.py use_rviz:=false
+```

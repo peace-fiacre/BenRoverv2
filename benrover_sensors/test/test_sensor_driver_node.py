@@ -38,16 +38,22 @@ def rclpy_context():
 
 
 def _spin_for(node_to_spin, seconds):
-    """Fait tourner le node pendant une courte duree pour laisser le
-    temps aux callbacks de s'executer (equivalent d'une pause 'active')."""
+    """
+    Fait tourner le node pendant une courte durée.
+
+    Laisse le temps aux callbacks de s'exécuter, comme une pause active.
+    """
     end_time = time.time() + seconds
     while time.time() < end_time:
         rclpy.spin_once(node_to_spin, timeout_sec=0.05)
 
 
 def test_wheel_encoders_filters_to_six_wheel_joints():
-    """/wheel_encoders ne doit contenir QUE les 6 joints de roue, pas
-    les 14 joints (rockers/bogies/direction inclus) de /joint_states."""
+    """
+    Vérifie que /wheel_encoders contient uniquement les roues.
+
+    Les joints de rocker, bogie et direction ne doivent pas être republiés.
+    """
     node_under_test = SensorAcquisitionNode()
 
     helper = Node('test_helper_encoders')
@@ -78,9 +84,11 @@ def test_wheel_encoders_filters_to_six_wheel_joints():
 
 
 def test_scan_republished_with_corrected_frame_id():
-    """/scan doit exister, etre du bon type, et avoir un frame_id
-    corrige (lidar_link) meme si le message brut de Gazebo arrive avec
-    un frame_id compose incoherent (benrover/base_link/lidar_sensor)."""
+    """
+    Vérifie la republication du scan avec le bon frame_id.
+
+    Le frame_id composé fourni par la simulation doit devenir lidar_link.
+    """
     node_under_test = SensorAcquisitionNode()
 
     helper = Node('test_helper_scan')
@@ -148,9 +156,11 @@ def test_imu_republished_with_corrected_frame_id():
 
 
 def test_stale_sensor_is_reported_without_crashing():
-    """Si /scan_raw ne recoit jamais rien pendant plus que le seuil, le
-    node doit le detecter (sans planter) - on verifie via son etat
-    interne plutot que de parser les logs."""
+    """
+    Vérifie qu'un capteur muet est détecté sans faire planter le node.
+
+    Le test observe l'état interne plutôt que de parser les logs.
+    """
     node_under_test = SensorAcquisitionNode()
     # Seuil reduit pour que le test soit rapide.
     node_under_test.stale_timeout_sec = 0.2

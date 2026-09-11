@@ -70,6 +70,24 @@ La simulation démarre le robot, ses capteurs, le pont de communication et
 l'EKF. Si le monde est en pause, appuyer sur le bouton de lecture avant de
 tester les commandes.
 
+## Lancer l'intégration complète
+
+Le launch d'intégration démarre en une seule commande la simulation, les
+capteurs, l'EKF, SLAM Toolbox, RViz et la supervision.
+
+```bash
+ros2 launch state_manager_node integration.launch.py
+```
+
+Pour lancer la chaîne sans RViz :
+
+```bash
+ros2 launch state_manager_node integration.launch.py use_rviz:=false
+```
+
+Le launch de la simulation démarre déjà `sensor_driver_node` et l'EKF. Ils ne
+doivent pas être relancés séparément, afin d'éviter des publishers en double.
+
 ## Vérifier les topics
 
 ```bash
@@ -250,7 +268,31 @@ ros2 run rviz2 rviz2 \
   --ros-args -p use_sim_time:=true
 ```
 
-## Suite prévue
+## Validation d'intégration
 
-La prochaine étape est de lancer le robot sur une carte déjà sauvegardée
-avec un système de localisation, puis d'ajouter la navigation autonome.
+Pendant la démonstration, vérifier simultanément le déplacement du rover dans
+la simulation, l'affichage de la carte dans RViz et le statut :
+
+```bash
+ros2 topic echo /reactive/status
+```
+
+Pour tester la supervision, arrêter uniquement `sensor_driver_node` ou
+`mapping_node` avec `Ctrl+C`. Le composant concerné et le statut global doivent
+passer à `ERROR`, sans que le node de supervision arrête le rover.
+
+## CI
+
+Le workflow GitHub Actions se trouve dans `.github/workflows/ci.yml`. Il
+construit le workspace et exécute les tests de `benrover_sensors`,
+`benrover_mapping` et `state_manager_node` avec `pytest`.
+
+```bash
+colcon test \
+  --packages-select \
+  benrover_sensors benrover_mapping state_manager_node \
+  --python-testing pytest \
+  --event-handlers console_direct+
+
+colcon test-result --verbose
+```

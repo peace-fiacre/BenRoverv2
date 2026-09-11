@@ -48,3 +48,23 @@ ros2 topic info /reactive/status -v
 
 La validation complète doit confirmer que le rover se déplace, que les scans
 restent alignés dans RViz et que le statut reste `OK`.
+
+## CI GitHub Actions
+
+Le workflow `.github/workflows/ci.yml` s'exécute sur les pushes et les Pull
+Requests vers `main`. Il installe ROS 2 et les dépendances, construit le
+workspace, puis lance les tests avec `pytest`.
+
+La commande équivalente en local est :
+
+```bash
+colcon test \
+  --packages-select \
+  benrover_sensors benrover_mapping state_manager_node \
+  --python-testing pytest \
+  --event-handlers console_direct+
+
+colcon test-result --verbose
+```
+
+Le résultat validé localement est de 15 tests exécutés, sans erreur ni échec.
