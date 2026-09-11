@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout du dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer ROS 2 Humble
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: humble
+
+      - name: Installer les dépendances système
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ros-humble-slam-toolbox \
+            ros-humble-robot-localization \
+            ros-humble-ros-gz-bridge \
+            ros-humble-ros-gz-sim \
+            ros-humble-launch-testing \
+            ros-humble-launch-testing-ros
+
+      - name: Installer les dépendances ROS
+        run: |
+          source /opt/ros/humble/setup.bash
+          rosdep update
+          rosdep install --from-paths src --ignore-src -r -y
+
+      - name: Construire le workspace
+        run: |
+          source /opt/ros/humble/setup.bash
+          colcon build --symlink-install
+
+      - name: Tester les packages concernés
+        run: |
+          source /opt/ros/humble/setup.bash
+          source install/setup.bash
+          mkdir -p "$RUNNER_TEMP/ros-log"
+          export ROS_LOG_DIR="$RUNNER_TEMP/ros-log"
+          colcon test \
+            --packages-select \
+            benrover_sensors \
+            benrover_mapping \
+            state_manager_node \
+            --python-testing pytest \
+            --event-handlers console_direct+
+
+      - name: Vérifier les résultats des tests
+        if: always()
+        run: |
+          source /opt/ros/humble/setup.bash
+          colcon test-result --verbose
