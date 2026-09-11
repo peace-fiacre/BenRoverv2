@@ -23,8 +23,8 @@ IMU_LINK_FRAME_ID = 'imu_link'
 
 class SensorAcquisitionNode(Node):
 
-    def __init__(self):
-        super().__init__('sensor_driver_node')
+    def __init__(self, namespace=None):
+        super().__init__('sensor_driver_node', namespace=namespace)
 
         # Parametres ROS 2 : reglables au lancement sans recompiler, ex:
         #   ros2 run benrover_sensors sensor_driver_node \

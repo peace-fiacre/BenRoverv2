@@ -53,9 +53,9 @@ def test_wheel_encoders_filters_to_six_wheel_joints():
 
     Les joints de rocker, bogie et direction ne doivent pas être republiés.
     """
-    node_under_test = SensorAcquisitionNode()
+    node_under_test = SensorAcquisitionNode(namespace='test_encoders')
 
-    helper = Node('test_helper_encoders')
+    helper = Node('test_helper_encoders', namespace='test_encoders')
     fake_joint_states_pub = helper.create_publisher(
         JointState, 'joint_states', 10)
 
@@ -88,9 +88,9 @@ def test_scan_republished_with_corrected_frame_id():
 
     Le frame_id composé fourni par la simulation doit devenir lidar_link.
     """
-    node_under_test = SensorAcquisitionNode()
+    node_under_test = SensorAcquisitionNode(namespace='test_scan')
 
-    helper = Node('test_helper_scan')
+    helper = Node('test_helper_scan', namespace='test_scan')
     fake_scan_raw_pub = helper.create_publisher(LaserScan, 'scan_raw', 10)
 
     received = []
@@ -122,9 +122,9 @@ def test_scan_republished_with_corrected_frame_id():
 
 def test_imu_republished_with_corrected_frame_id():
     """Meme verification que pour /scan, mais pour /imu."""
-    node_under_test = SensorAcquisitionNode()
+    node_under_test = SensorAcquisitionNode(namespace='test_imu')
 
-    helper = Node('test_helper_imu')
+    helper = Node('test_helper_imu', namespace='test_imu')
     fake_imu_raw_pub = helper.create_publisher(Imu, 'imu_raw', 10)
 
     received = []
@@ -160,7 +160,7 @@ def test_stale_sensor_is_reported_without_crashing():
 
     Le test observe l'état interne plutôt que de parser les logs.
     """
-    node_under_test = SensorAcquisitionNode()
+    node_under_test = SensorAcquisitionNode(namespace='test_stale')
     # Seuil reduit pour que le test soit rapide.
     node_under_test.stale_timeout_sec = 0.2
 
