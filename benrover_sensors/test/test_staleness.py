@@ -2,9 +2,9 @@
 # colcon test --packages-select benrover_sensors \
 #   --python-testing pytest --event-handlers console_direct+
 
-import rclpy
-
 from benrover_sensors.sensor_driver_node import SensorAcquisitionNode
+
+import rclpy
 
 
 def test_stale_sensor_is_reported_without_crashing(spin_for):
