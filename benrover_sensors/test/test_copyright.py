@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Run from the workspace root:
+# colcon test --packages-select benrover_sensors \
+#   --python-testing pytest --event-handlers console_direct+
+
 from ament_copyright.main import main
 import pytest
 

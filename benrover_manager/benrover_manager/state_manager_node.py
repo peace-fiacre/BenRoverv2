@@ -8,6 +8,13 @@ from rclpy.node import Node
 from sensor_msgs.msg import Imu, JointState, LaserScan
 
 
+# DiagnosticStatus.level is defined by ROS as uint8:
+# 0 = OK, 1 = WARN, 2 = ERROR.
+LEVEL_OK = 0
+LEVEL_WARN = 1
+LEVEL_ERROR = 2
+
+
 @dataclass
 class TopicHealth:
     """Etat local d'un topic surveille."""
@@ -30,12 +37,12 @@ class TopicHealth:
 
 def _status_for_topic(topic: TopicHealth, now_ns: int, timeout_sec: float):
     if not topic.valid:
-        return DiagnosticStatus.ERROR, topic.error or 'format invalide'
+        return LEVEL_ERROR, topic.error or 'format invalide'
     if topic.is_stale(now_ns, timeout_sec):
         if topic.last_message_ns is None:
-            return DiagnosticStatus.ERROR, 'aucun message recu'
-        return DiagnosticStatus.ERROR, 'aucun message recent'
-    return DiagnosticStatus.OK, 'messages recus normalement'
+            return LEVEL_ERROR, 'aucun message recu'
+        return LEVEL_ERROR, 'aucun message recent'
+    return LEVEL_OK, 'messages recus normalement'
 
 
 class StateManagerNode(Node):
@@ -113,6 +120,7 @@ class StateManagerNode(Node):
         status.name = name
         status.level = level
         status.message = message
+        values = {'level': str(level), **values}
         status.values = [
             KeyValue(key=key, value=value) for key, value in values.items()
         ]
@@ -132,12 +140,12 @@ class StateManagerNode(Node):
 
         sensor_level = max(item[1] for item in sensor_statuses)
         sensor_message = 'capteurs operationnels'
-        if sensor_level != DiagnosticStatus.OK:
+        if sensor_level != LEVEL_OK:
             sensor_message = 'au moins un capteur est indisponible'
 
         overall_level = max(sensor_level, map_level)
         overall_message = 'supervision operationnelle'
-        if overall_level != DiagnosticStatus.OK:
+        if overall_level != LEVEL_OK:
             overall_message = 'une anomalie a ete detectee'
 
         diagnostic = DiagnosticArray()

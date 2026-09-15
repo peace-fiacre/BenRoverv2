@@ -38,7 +38,7 @@ jobs:
             --from-paths \
             benrover_sensors \
             benrover_mapping \
-            state_manager_node \
+            benrover_manager \
             --ignore-src -r -y
 
       - name: Construire le workspace
@@ -48,7 +48,7 @@ jobs:
             --packages-select \
             benrover_sensors \
             benrover_mapping \
-            state_manager_node \
+            benrover_manager \
             --symlink-install
 
       - name: Tester les packages concernés
@@ -61,7 +61,7 @@ jobs:
             --packages-select \
             benrover_sensors \
             benrover_mapping \
-            state_manager_node \
+            benrover_manager \
             --python-testing pytest \
             --event-handlers console_direct+
 

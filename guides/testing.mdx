@@ -14,7 +14,7 @@ colcon test \
   --packages-select \
   benrover_sensors \
   benrover_mapping \
-  state_manager_node \
+  benrover_manager \
   --python-testing pytest \
   --event-handlers console_direct+
 ```
@@ -34,7 +34,7 @@ python3 -m pytest -q -s \
 
 ```bash
 python3 -m pytest -q \
-  src/state_manager_node/test/test_state_manager_node.py
+  src/benrover_manager/test/test_benrover_manager.py
 ```
 
 ## Contrôles manuels
@@ -60,7 +60,7 @@ La commande équivalente en local est :
 ```bash
 colcon test \
   --packages-select \
-  benrover_sensors benrover_mapping state_manager_node \
+  benrover_sensors benrover_mapping benrover_manager \
   --python-testing pytest \
   --event-handlers console_direct+
 

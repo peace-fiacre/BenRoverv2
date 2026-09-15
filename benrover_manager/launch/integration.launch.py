@@ -12,8 +12,6 @@ from launch_ros.actions import Node
 def generate_launch_description():
     gazebo_share = get_package_share_directory('benrover_gazebo')
     mapping_share = get_package_share_directory('benrover_mapping')
-    description_share = get_package_share_directory('benrover_description')
-
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
         default_value='true',
@@ -65,7 +63,7 @@ def generate_launch_description():
     )
 
     state_manager_node = Node(
-        package='state_manager_node',
+        package='benrover_manager',
         executable='state_manager_node',
         name='state_manager_node',
         output='screen',

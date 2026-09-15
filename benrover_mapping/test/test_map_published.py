@@ -17,6 +17,10 @@ correctement rempli).
 Ce test ne valide PAS la qualité de la carte (dérive, cohérence
 géométrique) : ça reste du ressort de la validation manuelle en RViz
 prévue dans la DoD ("carte cohérente sur un parcours simple").
+
+Run from the workspace root:
+  colcon test --packages-select benrover_mapping \
+    --python-testing pytest --event-handlers console_direct+
 """
 
 import math

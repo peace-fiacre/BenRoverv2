@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>state_manager_node</name>
+  <name>benrover_manager</name>
   <version>0.1.0</version>
   <description>Supervision informative de l'etat des capteurs et du mapping.</description>
   <maintainer email="fiacreegoudjobi@gmail.com">peace-fiacre</maintainer>
@@ -11,6 +11,15 @@
   <depend>nav_msgs</depend>
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
+
+  <!-- Runtime dependencies used by the integration launch. -->
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>benrover_gazebo</exec_depend>
+  <exec_depend>benrover_mapping</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>slam_toolbox</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

@@ -9,13 +9,13 @@ Avec la simulation active :
 
 ```bash
 source ~/Projects/BenRover/install/setup.bash
-ros2 launch state_manager_node state_manager.launch.py use_sim_time:=true
+ros2 launch benrover_manager state_manager.launch.py use_sim_time:=true
 ```
 
 Sur un robot réel, sans horloge de simulation :
 
 ```bash
-ros2 launch state_manager_node state_manager.launch.py use_sim_time:=false
+ros2 launch benrover_manager state_manager.launch.py use_sim_time:=false
 ```
 
 ## Lire le statut

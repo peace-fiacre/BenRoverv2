@@ -76,13 +76,13 @@ Le launch d'intégration démarre en une seule commande la simulation, les
 capteurs, l'EKF, SLAM Toolbox, RViz et la supervision.
 
 ```bash
-ros2 launch state_manager_node integration.launch.py
+ros2 launch benrover_manager integration.launch.py
 ```
 
 Pour lancer la chaîne sans RViz :
 
 ```bash
-ros2 launch state_manager_node integration.launch.py use_rviz:=false
+ros2 launch benrover_manager integration.launch.py use_rviz:=false
 ```
 
 Le launch de la simulation démarre déjà `sensor_driver_node` et l'EKF. Ils ne
@@ -285,12 +285,12 @@ passer à `ERROR`, sans que le node de supervision arrête le rover.
 
 Le workflow GitHub Actions se trouve dans `.github/workflows/ci.yml`. Il
 construit le workspace et exécute les tests de `benrover_sensors`,
-`benrover_mapping` et `state_manager_node` avec `pytest`.
+`benrover_mapping` et `benrover_manager` avec `pytest`.
 
 ```bash
 colcon test \
   --packages-select \
-  benrover_sensors benrover_mapping state_manager_node \
+  benrover_sensors benrover_mapping benrover_manager \
   --python-testing pytest \
   --event-handlers console_direct+
 

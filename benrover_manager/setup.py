@@ -4,7 +4,7 @@ import os
 from setuptools import find_packages, setup
 
 
-package_name = 'state_manager_node'
+package_name = 'benrover_manager'
 
 setup(
     name=package_name,
@@ -27,7 +27,7 @@ setup(
     entry_points={
         'console_scripts': [
             'state_manager_node = '
-            'state_manager_node.state_manager_node:main',
+            'benrover_manager.state_manager_node:main',
         ],
     },
 )

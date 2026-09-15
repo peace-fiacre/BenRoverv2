@@ -14,7 +14,7 @@ def generate_launch_description():
     return LaunchDescription([
         use_sim_time_arg,
         Node(
-            package='state_manager_node',
+            package='benrover_manager',
             executable='state_manager_node',
             name='state_manager_node',
             output='screen',
