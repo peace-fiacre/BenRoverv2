@@ -36,6 +36,8 @@ jobs:
           rosdep update
           rosdep install \
             --from-paths \
+            benrover_description \
+            benrover_gazebo \
             benrover_sensors \
             benrover_mapping \
             benrover_manager \
@@ -45,10 +47,7 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           colcon build \
-            --packages-select \
-            benrover_sensors \
-            benrover_mapping \
-            benrover_manager \
+            --packages-up-to benrover_manager \
             --symlink-install
 
       - name: Tester les packages concernés
